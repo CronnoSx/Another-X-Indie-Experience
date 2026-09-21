@@ -1,0 +1,1189 @@
+/* ===================== RESET BASICO ===================== */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Titan+One&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #04101c;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  /* Pedido do usuario: "ainda nao consigo usar algumas skills enquanto
+     ando" - o navegador tenta reconhecer gestos padrao (pan/zoom/pull-to-
+     refresh) toda vez que um SEGUNDO dedo toca a tela enquanto o primeiro
+     ja esta arrastando o joystick, e essa disambiguacao de gesto pode
+     atrasar ou engolir o toque do segundo dedo num botao de habilidade.
+     touch-action:none na pagina INTEIRA tira o navegador dessa decisao -
+     cada toque vira evento de toque puro e imediato, sem gesto nenhum por
+     cima (ver tambem .mobile-ability-btn/#mobile-t abaixo, que reforcam o
+     mesmo pros botoes especificamente). */
+  touch-action: none;
+}
+
+/* ===================== TELA DE SENHA ===================== */
+/* Fica acima de tudo (z-index maior que o canvas e a HUD) e bloqueia
+   completamente o jogo ate a senha certa ser digitada - o jogo (init/
+   animate) so comeca a rodar depois disso, ver setupPasswordGate em
+   script.js. */
+#password-gate {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #04101c;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#password-box {
+  width: min(320px, 86vw);
+  background: rgba(10, 28, 45, 0.9);
+  border: 2px solid #8fd8f0;
+  border-radius: 14px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  box-shadow: 0 0 30px rgba(143, 216, 240, 0.25);
+}
+
+#password-title {
+  color: #eaf8ff;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+#password-subtitle {
+  color: #9fc9dd;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+#password-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 2px solid #8fd8f0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaf8ff;
+  font-size: 16px;
+  outline: none;
+}
+
+#password-input::placeholder {
+  color: #7fa8bd;
+}
+
+#password-submit {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #8fd8f0;
+  color: #04101c;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#password-submit:active {
+  background: #6fc0dc;
+}
+
+#password-error {
+  color: #ff8080;
+  font-size: 13px;
+  text-align: center;
+  min-height: 16px;
+  display: none;
+}
+
+#password-error.visible {
+  display: block;
+}
+
+/* ===================== CANVAS DO JOGO ===================== */
+#game-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+/* ===================== FLASH DE MORTE/COLISAO ===================== */
+/* Fica escondido (opacity 0) o tempo todo - a classe flash-active (ver
+   triggerDeathFeedback em script.js) dispara a animacao de piscar e sumir
+   sozinha, sem nenhum timer em JS pra desligar de novo. */
+#death-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ff2b2b;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+#death-flash.flash-active {
+  animation: deathFlashAnim 0.4s ease-out;
+}
+
+@keyframes deathFlashAnim {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+/* ===================== CAMADA DE INTERFACE ===================== */
+#ui-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#checkpoint-info {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 28, 45, 0.68);
+  color: #eaf8ff;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  border: 2px solid #8fd8f0;
+}
+
+#message-box {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  white-space: nowrap;
+}
+
+#message-box.visible {
+  opacity: 1;
+}
+
+/* ===================== PAINEL DE TIME (BASE) ===================== */
+/* Pedido do usuario: SEMPRE no canto SUPERIOR DIREITO, em qualquer
+   resolucao (desktop ou mobile) - nunca mais centralizado na tela, pra nao
+   atrapalhar a gameplay nem tapar o personagem (que fica no meio da tela)
+   nem os controles (minimapa fica no canto ESQUERDO, barra de habilidade
+   fica embaixo). */
+#team-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  transform: none;
+  background: rgba(10, 28, 45, 0.5);
+  color: #eaf8ff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+  border: 1px solid rgba(143, 216, 240, 0.6);
+  white-space: normal;
+  max-width: min(34vw, 240px);
+}
+
+/* Tela estreita (celular/touch): pedido explicito do usuario - AINDA MAIS
+   transparente que o desktop (o painel estava atrapalhando a gameplay no
+   toque), continua no canto superior direito, so ajusta fonte/padding pro
+   espaco menor. */
+@media (max-width: 480px) {
+  #team-hud {
+    top: 54px;
+    right: 10px;
+    font-size: 9.5px;
+    padding: 4px 8px;
+    max-width: 42vw;
+    background: rgba(10, 28, 45, 0.1);
+    border-color: rgba(143, 216, 240, 0.22);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* ===================== BANNER DE CONGELADO ===================== */
+/* So aparece enquanto o Axie esta CONGELADO/CAIDO (ver updateFrozenBanner
+   em script.js) - contagem regressiva ate o respawn obrigatorio + as duas
+   saidas (T = sinalizar aliados, R = respawn manual). */
+#frozen-banner {
+  position: absolute;
+  top: 190px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(70, 20, 20, 0.82);
+  color: #ffe4cf;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  border: 2px solid #ff8080;
+  white-space: nowrap;
+}
+
+.frozen-hint {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  color: #ffcfae;
+  margin-top: 4px;
+}
+
+/* ===================== BARRA DE HABILIDADES ===================== */
+#abilities-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.ability {
+  pointer-events: auto; /* icones clicaveis no PC (clicar = pra frente, arrastar = mira) - ver setupMobileAbilityButtons */
+  cursor: pointer;
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #122a3c;
+  border: 2px solid #8fd8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.ability-key {
+  font-size: 18px;
+  font-weight: bold;
+  position: relative;
+  z-index: 2;
+}
+
+.ability-name {
+  font-size: 9px;
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 2px;
+}
+
+.cooldown-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1;
+  transition: height 0.1s linear;
+}
+
+.cooldown-text {
+  position: absolute;
+  z-index: 3;
+  font-size: 16px;
+  font-weight: bold;
+  color: #cdeeff;
+}
+
+/* ===================== MINIMAPA ===================== */
+#minimap-container {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: 160px;
+  height: 160px;
+  z-index: 15;
+  background: rgba(10, 28, 45, 0.55);
+  border: 2px solid #8fd8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#minimap-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Menor no celular, pra nao tomar espaco demais de uma tela ja cheia de
+   controles - fica no canto oposto ao leque de habilidades. */
+@media (pointer: coarse) {
+  #minimap-container {
+    width: 110px;
+    height: 110px;
+    top: 12px;
+    left: 12px;
+  }
+}
+
+/* ===================== JOYSTICK VIRTUAL (MOBILE) ===================== */
+#joystick-zone {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  z-index: 20;
+  display: none;
+}
+
+#joystick-base {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  position: relative;
+  touch-action: none;
+}
+
+#joystick-knob {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(210, 240, 255, 0.85);
+  border: 2px solid #8fd8f0;
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  transform: translate(0px, 0px);
+  pointer-events: none;
+}
+
+/* ===================== BOTOES DE HABILIDADE (MOBILE) ===================== */
+/* Leque ancorado no canto inferior direito (estilo MOBA - Mobile Legends
+   etc.), cada botao com sua propria posicao absoluta em vez de uma coluna
+   reta - assim o conjunto fica mais baixo e mais compacto, perto de onde o
+   polegar direito naturalmente descansa, em vez de esticar reto pra cima
+   pelo lado da tela. */
+#mobile-abilities {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 230px;
+  height: 190px;
+  z-index: 20;
+  display: none;
+  pointer-events: none; /* cada botao reativa o proprio toque abaixo */
+}
+
+.mobile-ability-btn {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(18, 42, 60, 0.75);
+  border: 2px solid #8fd8f0;
+  color: #eaf8ff;
+  font-size: 16px;
+  font-weight: bold;
+  pointer-events: auto;
+  overflow: hidden; /* clipa o preenchimento de cooldown no circulo */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  touch-action: none; /* toque imediato mesmo com o joystick ja em uso (ver comentario em html,body) */
+}
+
+.mobile-ability-label {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 3px;
+  line-height: 1.1;
+}
+
+/* Preenchimento de cooldown (mesma logica da barra de desktop, ver
+   .cooldown-fill/updateAbilityUI em script.js) - pedido do usuario:
+   "mostre o cooldown das skills tambem na versao mobile". */
+.mobile-cooldown-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1;
+  transition: height 0.1s linear;
+}
+
+.mobile-cooldown-text {
+  position: absolute;
+  z-index: 3;
+  font-size: 13px;
+  font-weight: bold;
+  color: #cdeeff;
+}
+
+/* TODOS os botoes de skill do mobile com o MESMO tamanho (56px) e a mesma fonte,
+   em qualquer classe (Teleporte e Skill 2/Cuspe deixaram de ser maiores). Leque
+   2x2 no canto inferior direito; o Respawn (R) saiu da fileira de baixo e fica
+   la em cima, do lado esquerdo do placar (HUD do time). */
+.mobile-ability-btn { width: 56px; height: 56px; font-size: 13px; }
+#mobile-g { right: 14px; bottom: 16px; }   /* Skill 2 */
+#mobile-f { right: 80px; bottom: 32px; }   /* Skill 1 */
+#mobile-e { right: 14px; bottom: 82px; }   /* Dash */
+#mobile-q { right: 80px; bottom: 98px; }   /* Teleporte */
+#mobile-r {
+  position: fixed;
+  top: 108px; /* ajustado por JS (layoutMobileR) para ficar logo ABAIXO do placar */
+  bottom: auto;
+  right: 16px; /* canto direito, alinhado com o placar */
+  width: 50px;
+  height: 50px;
+}
+@media (max-width: 480px) {
+  #mobile-r { right: 10px; }
+}
+/* Celular (touch, tela larga/deitado): placar MENOR e mais discreto */
+@media (pointer: coarse) and (min-width: 481px) {
+  #team-hud {
+    top: 12px;
+    right: 12px;
+    font-size: 9px;
+    line-height: 1.3;
+    padding: 4px 8px;
+    max-width: min(24vw, 190px);
+    background: rgba(10, 28, 45, 0.38);
+    border-color: rgba(143, 216, 240, 0.35);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  }
+}
+/* Botao de socorro (T) - so aparece enquanto o Axie esta congelado (ver
+   updateFrozenBanner em script.js, que alterna o atributo "hidden"), em
+   qualquer dispositivo (touch ou mouse) - por isso fica FORA de
+   #mobile-abilities (que so aparece em telas de toque) e centralizado,
+   facil de achar num momento de emergencia. */
+#mobile-t {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  padding: 14px 26px;
+  border-radius: 30px;
+  border: 2px solid #ffe066;
+  background: rgba(70, 50, 10, 0.88);
+  color: #ffe066;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: none; /* toque imediato mesmo com o joystick ja em uso */
+}
+
+#mobile-t:active {
+  background: rgba(100, 72, 14, 0.95);
+}
+
+/* Em dispositivos com toque (pointer coarse), mostra os controles mobile e
+   esconde a barra de habilidades de desktop (sem isso, as duas apareciam
+   juntas, sobrepostas, no celular). */
+@media (pointer: coarse) {
+  #abilities-bar {
+    display: none;
+  }
+  #joystick-zone {
+    display: block;
+  }
+  #mobile-abilities {
+    display: block;
+  }
+}
+
+/* ===================== TELAS: TITULO / MENU / OPCOES / VITORIA ===================== */
+/* Estilo "ilustrado/indie" limpo (referencia: tela titulo do Terrariums):
+   fundo azul claro, letras verdes com contorno escuro grosso, primeira
+   letra de cada palavra maior e laranja. Ficam acima do canvas/HUD e
+   abaixo da tela de senha (#password-gate, z-index 100). */
+.menu-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Azul bebe (baby blue #89cff0), com um brilho mais claro no centro */
+  background: radial-gradient(circle at 50% 38%, #b6e3f9 0%, #89cff0 62%, #7cc3e8 100%);
+  font-family: 'Fredoka', 'Baloo 2', 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+  color: #1b2b22;
+  padding: 16px 0;
+  overflow-y: auto; /* rolagem propria (html/body tem touch-action:none) */
+  touch-action: pan-y;
+}
+.menu-screen[hidden],
+#victory-screen[hidden] {
+  display: none !important;
+}
+
+.title-wrap {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 24px 12px 30px;
+  margin: auto; /* centraliza sem cortar o topo se a tela for baixa */
+}
+
+/* TITULOS BUBBLE (balloon letters): fonte Titan One (gorda e arredondada) com
+   preenchimento em degrade "inflado" (faixa clara de brilho no topo, corpo
+   mais saturado embaixo) e contorno azul-marinho grosso feito com drop-shadows
+   encadeados (o contorno acompanha a letra sem cobrir o degrade). Vale SO para
+   os titulos (.game-title, .menu-title, .victory-title) - nada de copiar arte
+   de terceiros, so o estilo de letra de balao. O tamanho do contorno e em em,
+   entao escala com a fonte. */
+.menu-title,
+.victory-title {
+  font-family: 'Titan One', 'Fredoka', 'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0;
+  background-image: linear-gradient(180deg, #ffffff 0%, #d8f3ff 14%, #6fd0ff 30%, #2f95ea 62%, #1a62bc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter:
+    drop-shadow(0.045em 0 0 #12386a) drop-shadow(-0.045em 0 0 #12386a)
+    drop-shadow(0 0.045em 0 #12386a) drop-shadow(0 -0.045em 0 #12386a)
+    drop-shadow(0.03em 0.03em 0 #12386a) drop-shadow(-0.03em 0.03em 0 #12386a)
+    drop-shadow(0.03em -0.03em 0 #12386a) drop-shadow(-0.03em -0.03em 0 #12386a)
+    drop-shadow(0 0.09em 0 #0b2444) drop-shadow(0 0.15em 0.05em rgba(8, 30, 60, 0.35));
+  user-select: none;
+}
+/* TITULO DA TELA INICIAL: letras de BALAO bem gordinhas (Titan One engrossada com
+   um traco branco por cima do degrade), CADA letra com o proprio contorno azul-marinho e
+   encaixada/sobreposta na vizinha (margem negativa, TUDO NA MESMA LINHA RETA,
+   sem sobe-e-desce nem inclinacao; a letra seguinte fica por cima). As iniciais mantem o
+   degrade amarelo/laranja de antes; as demais letras sao brancas (com um brilho
+   e uma sombra suave de volume). UMA LINHA sempre: a fonte escala com a largura. */
+.game-title {
+  font-family: 'Titan One', 'Fredoka', 'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+  font-size: min(5.2vw, 4.8rem);
+  font-weight: 400;
+  line-height: 1.15;
+  white-space: nowrap;
+  margin-bottom: 26px;
+  padding: 0.1em 0.15em 0.05em;
+  user-select: none;
+}
+.gt-word {
+  display: inline-block;
+  margin: 0 0.16em;
+  white-space: nowrap;
+}
+.game-title .l {
+  display: inline-block;
+  position: relative; /* letra seguinte fica por cima da anterior */
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.022em #eef8ff; /* engorda a letra (balao) - mesma cor do corpo */
+  background-image:
+    radial-gradient(ellipse 55% 28% at 34% 26%, #ffffff 0, rgba(255, 255, 255, 0) 100%),
+    linear-gradient(180deg, #ffffff 0%, #f1f9ff 50%, #cfe6f5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter:
+    drop-shadow(0.04em 0 0 #12386a) drop-shadow(-0.04em 0 0 #12386a)
+    drop-shadow(0 0.04em 0 #12386a) drop-shadow(0 -0.04em 0 #12386a)
+    drop-shadow(0.03em 0.03em 0 #12386a) drop-shadow(-0.03em 0.03em 0 #12386a)
+    drop-shadow(0.03em -0.03em 0 #12386a) drop-shadow(-0.03em -0.03em 0 #12386a)
+    drop-shadow(0 0.05em 0.02em rgba(8, 30, 60, 0.35));
+}
+.game-title .l + .l { margin-left: -0.07em; } /* encaixadas, bem juntinhas */
+/* Destaque em tamanho e cor da PRIMEIRA letra de cada palavra (A, X, I, E) -
+   mesmas cores de antes; a letra seguinte sobe quase em cima dela. */
+.game-title .gt-cap {
+  font-size: 1.32em;
+  line-height: 0.9;
+  -webkit-text-stroke: 0; /* as iniciais mantem exatamente o degrade de antes */
+  background-image: linear-gradient(180deg, #fffbd0 0%, #ffe680 14%, #ffc83a 32%, #ff9a1f 66%, #e26d0c 100%);
+}
+.game-title .gt-cap + .l { margin-left: -0.13em; }
+/* O "I" de Indie e o "E" de Experience ficam MENOS escondidos pela letra seguinte */
+.gt-word:nth-child(3) .gt-cap + .l,
+.gt-word:nth-child(4) .gt-cap + .l { margin-left: -0.02em; } /* o "n" quase em cima do "A" */
+.title-play {
+  display: block;
+  margin: 0 auto 10px;
+  padding: 10px 40px;
+  font: inherit;
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  font-weight: 700;
+  color: #163f64;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.title-play:hover,
+.title-play:focus-visible {
+  color: #1b2b22;
+  transform: scale(1.06);
+  outline: none;
+}
+.title-play .arrow { margin-left: 8px; }
+
+.press-enter {
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  font-weight: 600;
+  color: #1f5a86;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  animation: pressEnterPulse 1.6s ease-in-out infinite;
+}
+@keyframes pressEnterPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+/* Decoracao: faixa de grama + Axie VERDE (Planta) quicando (puro CSS, sem
+   imagem). Fica NO FLUXO, abaixo do "Press Enter" (antes ficava absoluta e
+   cobria o texto em telas baixas). */
+.title-deco {
+  position: relative;
+  width: min(70vw, 520px);
+  height: 78px;
+  margin: 26px auto 0;
+  pointer-events: none;
+}
+.title-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  background: #59eba9;
+  border: 3px solid #1b2b22;
+  border-radius: 10px;
+}
+.title-blob {
+  /* Axie PLANTA recortado (sem fundo), de frente, quicando sobre a barra de carregamento. */
+  position: absolute;
+  bottom: 12px;
+  right: 1%;
+  width: 75px;
+  animation: blobHop 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 4px 0 rgba(27, 43, 34, 0.25));
+}
+.title-blob img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+@keyframes blobHop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.menu-panel {
+  width: min(420px, 90vw);
+  padding: 28px 22px 24px;
+  margin: auto; /* centraliza sem cortar o topo em telas baixas (rolagem propria) */
+  background: #e9f8ff;
+  border: 4px solid #1b2b22;
+  border-radius: 22px;
+  box-shadow: 0 6px 0 #1b2b22;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.menu-title {
+  text-align: center;
+  font-size: clamp(1.7rem, 7vw, 2.2rem);
+  line-height: 1.2;
+}
+
+.menu-btn {
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 700;
+  padding: 14px 18px;
+  color: #1b2b22;
+  background: #59eba9;
+  border: 3px solid #1b2b22;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 #1b2b22;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.menu-btn:hover,
+.menu-btn:focus-visible {
+  background: #7df2bf;
+  outline: none;
+  transform: translateY(-1px);
+}
+.menu-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #1b2b22;
+}
+.menu-btn-small { font-size: 1.05rem; padding: 10px 14px; }
+.menu-btn:disabled:not(.menu-btn-disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Bloqueado (Multiplayer): tom mais escuro que as demais + "(em breve)" */
+.menu-btn-disabled,
+.menu-btn-disabled:hover {
+  background: #52655c;
+  color: #a5b6ad;
+  border-color: #2b3a33;
+  box-shadow: 0 4px 0 #2b3a33;
+  cursor: not-allowed;
+  transform: none;
+}
+.menu-soon { font-size: 0.85em; font-weight: 600; color: #cfe0d6; }
+
+/* Opcoes */
+.options-panel { width: min(520px, 92vw); }
+.opt-section {
+  background: #d4f0fb;
+  border: 3px solid #1b2b22;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.opt-head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+}
+.opt-slider { width: 100%; height: 28px; accent-color: #2fbf7c; cursor: pointer; }
+.kb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+}
+.kb-name { font-weight: 600; }
+.kb-key {
+  min-width: 96px;
+  font: inherit;
+  font-weight: 700;
+  padding: 6px 12px;
+  color: #1b2b22;
+  background: #fff;
+  border: 3px solid #1b2b22;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.kb-key:hover { background: #f1fff8; }
+.kb-capturing { background: #ffe8a8; animation: pressEnterPulse 1s ease-in-out infinite; }
+.opt-msg { min-height: 1.3em; text-align: center; font-weight: 600; color: #a03a1e; }
+.opt-actions { display: flex; gap: 12px; justify-content: space-between; }
+.opt-actions .menu-btn { flex: 1; }
+
+/* Celular: o foco e o volume - atalhos de teclado nao fazem sentido sem
+   teclado (rebind fica desktop-first) */
+@media (pointer: coarse) {
+  .opt-keys { display: none; }
+}
+
+/* Campo de nome (selecao de personagem): placeholder translucido */
+.select-name {
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  padding: 10px 12px;
+  border: 3px solid #1b2b22;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #163f64;
+  outline: none;
+  user-select: text;
+}
+.select-name::placeholder { color: rgba(22, 63, 100, 0.38); }
+.select-name:focus { border-color: #ffc23a; }
+
+/* Nomes + infos acima dos Axies (discretos) */
+#nameplates {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+#nameplates[hidden] { display: none !important; }
+.nameplate {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-family: 'Fredoka', 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 2px rgba(0, 20, 40, 0.85), 0 0 3px rgba(0, 20, 40, 0.6);
+  will-change: transform;
+}
+.nameplate .np-name::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--tc, #fff);
+  vertical-align: middle;
+}
+.nameplate.np-self { color: rgba(255, 255, 255, 0.95); }
+.np-info { display: inline-flex; align-items: center; gap: 3px; }
+.np-life {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  background: conic-gradient(#7de35a calc(var(--p, 0) * 360deg), rgba(255, 255, 255, 0.22) 0);
+  box-shadow: 0 0 2px rgba(0, 20, 40, 0.7);
+}
+.np-life.on { background: #7de35a; }
+.np-leaf {
+  display: inline-block;
+  width: 6px;
+  height: 8px;
+  border-radius: 100% 0 100% 0;
+  background: rgba(125, 227, 90, 0.3);
+}
+.np-leaf.on { background: #7de35a; box-shadow: 0 0 3px #7de35a; }
+.np-chip {
+  padding: 0 4px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  text-shadow: none;
+  color: #0b2233;
+}
+.np-root { background: #d9a26a; }
+.np-lock { background: #7fd6ff; }
+.np-slow { background: #cfe9f7; }
+.np-frozen { background: #ffffff; }
+
+/* Slots com cargas: contador no canto inferior, sem cobrir a tecla */
+.has-charges .cooldown-text,
+.has-charges .mobile-cooldown-text {
+  top: 2px;
+  right: 4px;
+  left: auto;
+  bottom: auto;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+/* Slot passivo de vida (Planta) - so mostra, nao e clicavel */
+.ability[hidden] { display: none; }
+.ability-passive { pointer-events: none; cursor: default; border-color: #7de35a; }
+.mobile-life {
+  position: absolute;
+  right: 148px;
+  bottom: 36px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid #7de35a;
+  background: rgba(18, 42, 60, 0.75);
+  color: #eaf8ff;
+  font-weight: bold;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mobile-life[hidden] { display: none; }
+.mobile-life-key { position: relative; z-index: 2; }
+
+/* Selecao de personagem: grid 3x3 (3 jogaveis + 6 "em breve") */
+.select-panel { width: min(560px, 94vw); }
+.select-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.select-card {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid #1b2b22;
+  border-radius: 12px;
+  background: #d4f0fb;
+  cursor: pointer;
+  font: inherit;
+  touch-action: manipulation;
+}
+.select-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.select-card .card-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  background: rgba(20, 45, 70, 0.75);
+}
+.select-card:hover,
+.select-card:focus-visible { outline: 3px solid #ffc23a; outline-offset: 1px; }
+.select-card.selected { border-color: #ffc23a; box-shadow: 0 0 0 4px #ffc23a; }
+.select-card.locked {
+  cursor: not-allowed;
+  background: #52655c;
+  color: #a5b6ad;
+  border-color: #2b3a33;
+}
+.select-card.locked:hover { outline: none; }
+.select-card.locked .card-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+.select-info { text-align: center; font-weight: 700; min-height: 1.3em; color: #163f64; }
+
+/* Pausa: por cima do jogo, fundo semitransparente (o jogo fica visivel atras) */
+.pause-screen { background: rgba(14, 40, 66, 0.6); }
+
+/* Contador 3-2-1 */
+#countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: 'Titan One', 'Fredoka', 'Trebuchet MS', Arial, sans-serif;
+  font-size: clamp(6rem, 24vw, 14rem);
+  color: #ffffff;
+  -webkit-text-stroke: 0.08em #1c4f7c;
+  paint-order: stroke fill;
+  text-shadow: 0 0.05em 0 #1c4f7c, 0 0.1em 0.12em rgba(10, 40, 70, 0.4);
+}
+#countdown[hidden] { display: none !important; }
+
+/* Dica de direcao logo abaixo do numero do 3-2-1 */
+#countdown-hint {
+  position: fixed;
+  left: 50%;
+  top: 68%;
+  transform: translateX(-50%);
+  z-index: 65;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(255, 210, 58, 0.95);
+  border: 3px solid #1c4f7c;
+  box-shadow: 0 4px 0 #1c4f7c;
+  color: #163f64;
+  font-family: 'Fredoka', 'Trebuchet MS', Arial, sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 2.6vw, 1.5rem);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pressEnterPulse 1.2s ease-in-out infinite;
+}
+#countdown-hint[hidden] { display: none !important; }
+#countdown-hint .hint-arrow { margin-left: 6px; }
+
+/* Botao de pausa (so touch) */
+#pause-btn {
+  display: none;
+  position: fixed;
+  top: 130px;
+  left: 12px;
+  z-index: 25;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 2px solid #8fd8f0;
+  background: rgba(18, 42, 60, 0.75);
+  color: #eaf8ff;
+  font-weight: 700;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+@media (pointer: coarse) {
+  #pause-btn:not([hidden]) { display: block; }
+}
+
+/* Vitoria / derrota do time */
+#victory-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 28, 45, 0.72);
+  font-family: 'Fredoka', 'Baloo 2', 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+}
+.victory-box {
+  text-align: center;
+  padding: 28px 34px;
+  background: #e9f8ff;
+  border: 4px solid #1b2b22;
+  border-radius: 22px;
+  box-shadow: 0 6px 0 #1b2b22;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.victory-title {
+  font-size: clamp(2.4rem, 8vw, 4rem);
+}
+#victory-screen.victory-win .victory-title { background-image: linear-gradient(180deg, #ffffff 0%, #d9ffea 14%, #6df0b0 30%, #22b874 62%, #0e7c4b 100%); }
+#victory-screen.victory-lose .victory-title { background-image: linear-gradient(180deg, #ffffff 0%, #ffe3dd 14%, #ff9a8a 30%, #e5503c 62%, #a52a1c 100%); }
+.victory-sub { font-size: 1.2rem; font-weight: 600; color: #1b2b22; }
+
+/* ===================== ATALHO RAPIDO (opcoes) ===================== */
+.opt-note { font-size: 0.9rem; font-weight: 600; color: #1f5a86; line-height: 1.3; }
+.opt-toggle { min-width: 110px; }
+.opt-toggle.on { background: #59eba9; }
+
+/* Botoes de menu: nunca quebram o texto em telas estreitas (ex.: "Opcoes" na pausa mobile) */
+.menu-btn { white-space: nowrap; text-align: center; -webkit-text-stroke: 0; text-shadow: none; }
+.menu-panel .menu-btn { min-height: 48px; }
+
+/* ===================== TELAS DE COMANDOS / OBJETIVO ===================== */
+.guide-panel { width: min(600px, 94vw); cursor: pointer; gap: 12px; }
+.guide-page { display: flex; flex-direction: column; gap: 12px; }
+.guide-page[hidden] { display: none !important; }
+.cmd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.cmd { display: flex; align-items: center; gap: 10px; background: #d4f0fb; border: 3px solid #1b2b22; border-radius: 12px; padding: 6px 10px; min-height: 48px; }
+.cmd-key { flex: 0 0 auto; min-width: 42px; text-align: center; font-weight: 700; padding: 4px 8px; background: #ffffff; border: 3px solid #1b2b22; border-radius: 9px; box-shadow: 0 3px 0 #1b2b22; color: #163f64; }
+.cmd-key.cmd-wide { min-width: 0; max-width: 46%; font-size: 0.72rem; line-height: 1.1; padding: 4px 6px; background: #ffe8a8; }
+.cmd-desc { font-weight: 600; font-size: 0.95rem; line-height: 1.15; color: #1b2b22; }
+.guide-note { text-align: center; font-weight: 600; font-size: 0.95rem; color: #1f5a86; }
+.guide-story { font-size: clamp(1.05rem, 2.8vw, 1.35rem); font-weight: 600; line-height: 1.5; text-align: center; color: #163f64; padding: 10px 6px; }
+.guide-dots { display: flex; justify-content: center; gap: 8px; }
+.guide-dot { width: 10px; height: 10px; border-radius: 50%; background: #9fc9dd; border: 2px solid #1b2b22; }
+.guide-dot.on { background: #ffc23a; }
+.guide-foot { text-align: center; font-weight: 700; font-size: 0.95rem; color: #1f5a86; animation: pressEnterPulse 1.6s ease-in-out infinite; }
+
+/* Mock do layout mobile (mesma disposicao dos botoes reais) */
+.mock { position: relative; height: 235px; background: #1b3a52; border: 3px solid #1b2b22; border-radius: 16px; overflow: hidden; }
+.mock-joy { position: absolute; left: 14px; bottom: 14px; width: 92px; height: 92px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.12); color: #eaf8ff; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; text-align: center; }
+.mock-btn { position: absolute; border-radius: 50%; border: 2px solid #8fd8f0; background: rgba(18, 42, 60, 0.9); color: #eaf8ff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; text-align: center; }
+.mock-btn b { font-size: 0.78rem; }
+.mock-btn small { font-size: 0.55rem; opacity: 0.85; }
+.mock-hud { position: absolute; right: 10px; top: 10px; width: 92px; height: 46px; border-radius: 8px; border: 2px solid rgba(143, 216, 240, 0.6); background: rgba(10, 28, 45, 0.6); color: #eaf8ff; font-size: 0.62rem; font-weight: 700; display: flex; align-items: center; justify-content: center; text-align: center; }
+.mb-r { width: 42px; height: 42px; right: 14px; top: 64px; }
+.mb-q { width: 52px; height: 52px; right: 78px; bottom: 88px; }
+.mb-e { width: 52px; height: 52px; right: 14px; bottom: 74px; }
+.mb-f { width: 52px; height: 52px; right: 78px; bottom: 24px; }
+.mb-g { width: 52px; height: 52px; right: 14px; bottom: 10px; }
+.tuto-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Baloes de fala (tutorial mobile) */
+.tuto { position: relative; display: flex; align-items: center; gap: 10px; background: #ffffff; border: 3px solid #1b2b22; border-radius: 22px; padding: 10px 14px; box-shadow: 0 3px 0 #1b2b22; }
+.tuto::after { content: ''; position: absolute; left: 28px; bottom: -13px; width: 18px; height: 18px; background: #ffffff; border-right: 3px solid #1b2b22; border-bottom: 3px solid #1b2b22; transform: rotate(45deg); }
+.tuto-row { margin-bottom: 8px; }
+.tuto-icon { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; font-size: 1.6rem; color: #163f64; }
+.t-btn { display: inline-block; }
+.t-drag { color: #e0a800; animation: tutoDrag 1.2s ease-in-out infinite; }
+.t-tap { animation: tutoTap 1s ease-in-out infinite; }
+.tuto-text { font-weight: 600; font-size: 0.95rem; line-height: 1.2; color: #1b2b22; }
+@keyframes tutoDrag { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+@keyframes tutoTap { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.7); } }
+@media (max-width: 520px) {
+  .cmd-grid { grid-template-columns: 1fr; }
+  .tuto-row { grid-template-columns: 1fr; }
+  .mock { height: 235px; }
+  .mock-joy { left: 8px; bottom: 10px; width: 80px; height: 80px; }
+}
+
+/* Atalhos: tecla duplicada no rascunho + botao Salvar atalhos */
+.kb-key.kb-dup { border-color: #d33a2a; background: #ffd9d4; color: #a0261a; }
+#opt-save-keys { margin-top: 10px; width: 100%; }
+.kb-dup-msg { min-height: 1.3em; margin-top: 8px; font-size: 0.9rem; font-weight: 600; color: #1f5a86; line-height: 1.3; }
+.kb-dup-msg.bad { color: #b02a1a; font-weight: 700; }
+
+/* Flash colorido ao ser ATINGIDO por uma skill (cor = tipo da skill, via --hit) */
+#hit-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 31;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, var(--hit, #ff5533) 130%);
+}
+#hit-flash.active { animation: hitFlashAnim 0.55s ease-out; }
+@keyframes hitFlashAnim {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* Seletor de idioma (Opcoes) - mesmo visual dos botoes de tecla */
+.opt-select {
+  min-width: 170px;
+  font: inherit;
+  font-weight: 700;
+  padding: 6px 10px;
+  color: #1b2b22;
+  background: #fff;
+  border: 3px solid #1b2b22;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.opt-select:hover { background: #f1fff8; }
+.opt-head .opt-select { margin-left: 12px; }

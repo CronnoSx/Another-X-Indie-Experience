@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Axie Desert Rush</title>
+  <link rel="stylesheet" href="style.css?v=42">
+</head>
+<body>
+
+  <!-- IDIOMA: todo texto visivel usa data-i18n / data-i18n-html / data-i18n-ph / data-i18n-alt / data-i18n-aria
+       (chaves e traducoes en + pt-BR em I18N no script.js). O texto que esta aqui e o padrao: INGLES. -->
+
+  <!-- Tela de senha (bloqueia o jogo ate a senha correta ser digitada) -->
+  <div id="password-gate">
+    <div id="password-box">
+      <div id="password-title">Axie Desert Rush</div>
+      <div id="password-subtitle" data-i18n="pw.sub">Enter the password to play</div>
+      <input type="password" id="password-input" placeholder="Password" data-i18n-ph="pw.ph" autocomplete="off">
+      <button id="password-submit" data-i18n="pw.btn">Enter</button>
+      <div id="password-error"></div>
+    </div>
+  </div>
+
+  <!-- Tela titulo (depois da senha) - Enter/qualquer tecla/toque confirma "Jogar" -->
+  <div id="title-screen" class="menu-screen" hidden>
+    <div class="title-wrap">
+      <h1 class="game-title" aria-label="Another X Indie Experience">
+        <span class="gt-word" aria-hidden="true"><span class="l gt-cap">A</span><span class="l">n</span><span class="l">o</span><span class="l">t</span><span class="l">h</span><span class="l">e</span><span class="l">r</span></span>
+        <span class="gt-word" aria-hidden="true"><span class="l gt-cap">X</span></span>
+        <span class="gt-word" aria-hidden="true"><span class="l gt-cap">I</span><span class="l">n</span><span class="l">d</span><span class="l">i</span><span class="l">e</span></span>
+        <span class="gt-word" aria-hidden="true"><span class="l gt-cap">E</span><span class="l">x</span><span class="l">p</span><span class="l">e</span><span class="l">r</span><span class="l">i</span><span class="l">e</span><span class="l">n</span><span class="l">c</span><span class="l">e</span></span>
+      </h1>
+      <button id="title-play" class="title-play" type="button" data-i18n-html="title.play">Play <span class="arrow">&rarr;</span></button>
+      <div class="press-enter">Press Enter</div>
+      <!-- Axie VERDE (Planta) quicando na faixa de grama -->
+      <div class="title-deco" aria-hidden="true">
+        <div class="title-blob"><img src="axie_plant_cut.png" alt="Plant Axie" data-i18n-alt="title.alt" draggable="false"></div>
+        <div class="title-ground"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu principal -->
+  <div id="main-menu" class="menu-screen" hidden>
+    <div class="menu-panel">
+      <h2 class="menu-title" data-i18n="menu.title">Menu</h2>
+      <button id="menu-single" class="menu-btn" type="button" data-i18n="menu.single">Single Player</button>
+      <!-- Multiplayer bloqueado por enquanto (sem servidor real) -->
+      <button id="menu-multi" class="menu-btn menu-btn-disabled" type="button" disabled data-i18n-html="menu.multi">Multiplayer <span class="menu-soon">(coming soon)</span></button>
+      <button id="menu-options" class="menu-btn" type="button" data-i18n="menu.options">Options</button>
+    </div>
+  </div>
+
+  <!-- Selecao de personagem (Single Player -> aqui -> Start -> countdown -> jogo).
+       Grid 3x3: so 3 classes jogaveis por enquanto, os outros 6 slots sao
+       "em breve" (montados em JS, ver buildSelectGrid). -->
+  <div id="select-screen" class="menu-screen" hidden>
+    <div class="menu-panel select-panel">
+      <h2 class="menu-title" data-i18n="select.title">Choose your character</h2>
+      <input id="select-name" class="select-name" type="text" maxlength="14" placeholder="Type your name" data-i18n-ph="select.name" autocomplete="off" spellcheck="false">
+      <div id="select-grid" class="select-grid"></div>
+      <div id="select-info" class="select-info" data-i18n="select.info">Select a character</div>
+      <div class="opt-actions">
+        <button id="select-back" class="menu-btn menu-btn-small" type="button" data-i18n="select.back">Back</button>
+        <button id="select-start" class="menu-btn menu-btn-small" type="button" disabled data-i18n="select.start">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telas antes da partida (Start -> comandos PC -> comandos mobile -> objetivo -> countdown).
+       Clique ou qualquer tecla avanca (ver startMatch/advanceGuide em script.js). -->
+  <div id="guide-screen" class="menu-screen" hidden>
+    <div class="menu-panel guide-panel">
+
+      <!-- Tela 1: comandos PC (as teclas sao preenchidas por JS com os atalhos atuais) -->
+      <div id="guide-page-0" class="guide-page">
+        <h2 class="menu-title" data-i18n="guide.pc.title">Controls (PC)</h2>
+        <div class="cmd-grid">
+          <div class="cmd"><span class="cmd-key cmd-wide" data-i18n="guide.rmb">Right mouse button</span><span class="cmd-desc" data-i18n="guide.rmb.d">Hold = walk to the mouse cursor</span></div>
+          <div class="cmd"><span class="cmd-key cmd-wide" data-i18n="guide.lmb">Left mouse button</span><span class="cmd-desc" data-i18n="guide.lmb.d">Click to confirm the skill aim</span></div>
+          <div class="cmd"><span class="cmd-key" id="gk-tp">1</span><span class="cmd-desc" data-i18n="ab.teleport">Teleport</span></div>
+          <div class="cmd"><span class="cmd-key" id="gk-dash">2</span><span class="cmd-desc" data-i18n="ab.dash">Dash</span></div>
+          <div class="cmd"><span class="cmd-key" id="gk-s1">3</span><span class="cmd-desc" id="gn-s1">Skill 1</span></div>
+          <div class="cmd"><span class="cmd-key" id="gk-s2">4</span><span class="cmd-desc" id="gn-s2">Skill 2</span></div>
+          <div class="cmd"><span class="cmd-key" id="gk-r">R</span><span class="cmd-desc" data-i18n="ab.respawn">Respawn</span></div>
+          <div class="cmd"><span class="cmd-key" id="gk-t">T</span><span class="cmd-desc" data-i18n="guide.help">Call for help (frozen)</span></div>
+          <div class="cmd"><span class="cmd-key">Esc</span><span class="cmd-desc" data-i18n="guide.esc">Pause / cancel aim</span></div>
+        </div>
+        <div class="guide-note" data-i18n-html="guide.tip">Tip: in Options you can turn on <b>Quick cast</b> (the skill fires instantly toward the cursor).</div>
+      </div>
+
+      <!-- Tela 2: comandos mobile -->
+      <div id="guide-page-1" class="guide-page" hidden>
+        <h2 class="menu-title" data-i18n="guide.mob.title">Controls (Mobile)</h2>
+        <div class="mock">
+          <div class="mock-hud" data-i18n="guide.mob.hud">Team scoreboard</div>
+          <div class="mock-joy"><span data-i18n-html="guide.mob.joy">Joystick<br>= move</span></div>
+          <div class="mock-btn mb-q"><b>TP</b><small data-i18n="ab.teleport">Teleport</small></div>
+          <div class="mock-btn mb-e"><b>Dash</b></div>
+          <div class="mock-btn mb-f"><b>Skill 1</b><small id="mk-s1">Push</small></div>
+          <div class="mock-btn mb-g"><b>Skill 2</b><small id="mk-s2">Stomp</small></div>
+          <div class="mock-btn mb-r"><b>R</b><small data-i18n="ab.respawn">Respawn</small></div>
+        </div>
+        <div class="tuto-row">
+          <div class="tuto">
+            <div class="tuto-icon"><span class="t-btn">&#9679;</span><span class="t-drag">&#10132;</span></div>
+            <div class="tuto-text" data-i18n-html="guide.mob.drag"><b>Touch and drag</b> to use the skill</div>
+          </div>
+          <div class="tuto">
+            <div class="tuto-icon"><span class="t-btn t-tap">&#9679;</span></div>
+            <div class="tuto-text" data-i18n-html="guide.mob.tap"><b>Tap</b> for quick use</div>
+          </div>
+        </div>
+        <div class="guide-note" data-i18n="guide.mob.note">Skill 1 and Skill 2 have aim assist.</div>
+      </div>
+
+      <!-- Tela 3: objetivo -->
+      <div id="guide-page-2" class="guide-page" hidden>
+        <h2 class="menu-title" data-i18n="guide.goal.title">Objective</h2>
+        <p class="guide-story" data-i18n="guide.story">For some reason the cells were opened... escape the frozen prison with your allies and don't let the enemy guild lock you inside the maze again.</p>
+      </div>
+
+      <div class="guide-dots"><i id="guide-dot-0" class="guide-dot on"></i><i id="guide-dot-1" class="guide-dot"></i><i id="guide-dot-2" class="guide-dot"></i></div>
+      <div class="guide-foot" data-i18n="guide.foot">Click or press any key to continue</div>
+    </div>
+  </div>
+  <!-- Pausa (ESC no Single Player) -->
+  <div id="pause-menu" class="menu-screen pause-screen" hidden>
+    <div class="menu-panel">
+      <h2 class="menu-title" data-i18n="pause.title">Pause</h2>
+      <button id="pause-resume" class="menu-btn" type="button" data-i18n="pause.resume">Resume</button>
+      <button id="pause-options" class="menu-btn" type="button" data-i18n="menu.options">Options</button>
+      <button id="pause-quit" class="menu-btn" type="button" data-i18n="pause.quit">Quit match</button>
+    </div>
+  </div>
+
+  <!-- Opcoes: idioma + volume + atalhos de teclado -->
+  <div id="options-screen" class="menu-screen" hidden>
+    <div class="menu-panel options-panel">
+      <h2 class="menu-title" data-i18n="menu.options">Options</h2>
+
+      <div class="opt-section">
+        <div class="opt-head"><span data-i18n="opt.language">Language</span>
+          <select id="opt-lang" class="opt-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="pt">Portugu&ecirc;s (Brasil)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="opt-section">
+        <div class="opt-head"><span data-i18n="opt.volume">Master volume</span><span id="opt-volume-value">80%</span></div>
+        <input id="opt-volume" class="opt-slider" type="range" min="0" max="100" step="1" value="80">
+        <div class="opt-note" data-i18n="opt.volume.note">Controls the overall game volume.</div>
+      </div>
+      <div class="opt-section">
+        <div class="opt-head"><span data-i18n="opt.music">Soundtrack</span><span id="opt-music-value">70%</span></div>
+        <input id="opt-music" class="opt-slider" type="range" min="0" max="100" step="1" value="70">
+      </div>
+      <div class="opt-section">
+        <div class="opt-head"><span data-i18n="opt.sfx">Game sounds</span><span id="opt-sfx-value">80%</span></div>
+        <input id="opt-sfx" class="opt-slider" type="range" min="0" max="100" step="1" value="80">
+        <div class="opt-note" data-i18n="opt.sfx.note">Skills, chatter, noises, ambience and Axie voices.</div>
+      </div>
+
+      <div class="opt-section opt-keys">
+        <div class="opt-head"><span data-i18n="opt.quick">Quick cast</span><button id="opt-quickcast" class="kb-key opt-toggle" type="button">Off</button></div>
+        <div class="opt-note" data-i18n="opt.quick.note">On: pressing 1/2/3/4 fires the skill instantly toward the cursor direction/point. Off: shows the aim and you confirm with a click.</div>
+      </div>
+      <div class="opt-section opt-keys">
+        <div class="opt-head"><span data-i18n="opt.keys">Keyboard shortcuts</span></div>
+        <div id="keybind-list"></div>
+        <button id="opt-save-keys" class="menu-btn menu-btn-small" type="button" disabled data-i18n="opt.savekeys">Save shortcuts</button>
+        <div id="kb-dup-msg" class="kb-dup-msg"></div>
+      </div>
+
+      <div id="opt-msg" class="opt-msg"></div>
+      <div class="opt-actions">
+        <button id="opt-reset" class="menu-btn menu-btn-small opt-keys" type="button" data-i18n="opt.reset">Reset to defaults</button>
+        <button id="opt-back" class="menu-btn menu-btn-small" type="button" data-i18n="select.back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tela de vitoria/derrota do time (ver showVictoryScreen) -->
+  <div id="victory-screen" hidden>
+    <div class="victory-box">
+      <div id="victory-title" class="victory-title">VICTORY!</div>
+      <div id="victory-sub" class="victory-sub"></div>
+      <button id="victory-menu-btn" class="menu-btn menu-btn-small" type="button" data-i18n="victory.menu">Main menu</button>
+    </div>
+  </div>
+
+  <!-- Nomes/infos acima dos Axies (ver createNameplates/updateNameplates) -->
+  <div id="nameplates" hidden></div>
+
+  <!-- Contador 3-2-1 do inicio da partida (ver updateCountdown) -->
+  <div id="countdown" hidden>3</div>
+  <!-- Dica de direcao mostrada junto do 3-2-1 (ver startCountdown) -->
+  <div id="countdown-hint" hidden data-i18n-html="hint.follow">Follow the ice to the checkpoint <span class="hint-arrow">&#10140;</span></div>
+
+  <!-- Botao de pausa (so aparece em telas de toque - no PC e ESC) -->
+  <button id="pause-btn" type="button" hidden aria-label="Pause" data-i18n-aria="pause.aria">II</button>
+
+  <!-- Canvas onde o Three.js renderiza o jogo -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Flash de tela (feedback de morte/colisao) -->
+  <div id="death-flash"></div>
+  <!-- Flash colorido ao ser ATINGIDO por uma skill (ver feedbackHit) -->
+  <div id="hit-flash"></div>
+
+  <!-- Interface (HUD) -->
+  <div id="ui-overlay">
+
+    <div id="checkpoint-info">
+      Checkpoint: <span id="checkpoint-count">0</span> / <span id="checkpoint-total">0</span>
+    </div>
+
+    <!-- Painel de time (base do sistema hibrido) -->
+    <div id="team-hud"></div>
+
+    <div id="message-box"></div>
+
+    <!-- Banner grande so enquanto o Axie esta CONGELADO/CAIDO -->
+    <div id="frozen-banner" hidden></div>
+
+    <div id="abilities-bar">
+      <div class="ability" id="ability-q">
+        <div class="ability-key">G</div>
+        <div class="ability-name" data-i18n="ab.teleport">Teleport</div>
+        <div class="cooldown-fill" id="cooldown-fill-q"></div>
+        <div class="cooldown-text" id="cooldown-text-q"></div>
+      </div>
+      <div class="ability" id="ability-e">
+        <div class="ability-key">E</div>
+        <div class="ability-name" data-i18n="ab.dash">Dash</div>
+        <div class="cooldown-fill" id="cooldown-fill-e"></div>
+        <div class="cooldown-text" id="cooldown-text-e"></div>
+      </div>
+      <div class="ability" id="ability-f">
+        <div class="ability-key">F</div>
+        <div class="ability-name" data-i18n="skill.push">Push</div>
+        <div class="cooldown-fill" id="cooldown-fill-f"></div>
+        <div class="cooldown-text" id="cooldown-text-f"></div>
+      </div>
+      <div class="ability" id="ability-g">
+        <div class="ability-key">H</div>
+        <div class="ability-name" data-i18n="skill.invuln">Invulnerable</div>
+        <div class="cooldown-fill" id="cooldown-fill-g"></div>
+        <div class="cooldown-text" id="cooldown-text-g"></div>
+      </div>
+      <div class="ability" id="ability-r">
+        <div class="ability-key">R</div>
+        <div class="ability-name" data-i18n="ab.respawn">Respawn</div>
+        <div class="cooldown-fill" id="cooldown-fill-r"></div>
+        <div class="cooldown-text" id="cooldown-text-r"></div>
+      </div>
+      <div class="ability" id="ability-t">
+        <div class="ability-key">T</div>
+        <div class="ability-name" data-i18n="ab.help">Help</div>
+      </div>
+      <!-- Slot PASSIVO da Planta: vidas + temporizador da 2a vida (15s) -->
+      <div class="ability ability-passive" id="ability-life" hidden>
+        <div class="ability-key" id="life-key">2/2</div>
+        <div class="ability-name" data-i18n="ab.life">Life</div>
+        <div class="cooldown-fill" id="life-fill"></div>
+        <div class="cooldown-text" id="life-text"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Minimapa -->
+  <div id="minimap-container">
+    <canvas id="minimap-canvas"></canvas>
+  </div>
+
+  <!-- Joystick virtual (mobile) -->
+  <div id="joystick-zone">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
+    </div>
+  </div>
+
+  <!-- Botoes de habilidade (mobile) - cada um agora tambem mostra o
+       cooldown (preenchimento + numero), igual a barra de desktop (ver
+       updateAbilityUI em script.js). -->
+  <div id="mobile-abilities">
+    <div class="mobile-life" id="mobile-life" hidden>
+      <span class="mobile-life-key" id="mobile-life-key">2/2</span>
+      <div class="mobile-cooldown-fill" id="mobile-life-fill"></div>
+      <div class="mobile-cooldown-text" id="mobile-life-text"></div>
+    </div>
+    <button class="mobile-ability-btn" id="mobile-q">
+      <span class="mobile-ability-label">TP</span>
+      <div class="mobile-cooldown-fill" id="mobile-cooldown-fill-q"></div>
+      <div class="mobile-cooldown-text" id="mobile-cooldown-text-q"></div>
+    </button>
+    <button class="mobile-ability-btn" id="mobile-e">
+      <span class="mobile-ability-label">E</span>
+      <div class="mobile-cooldown-fill" id="mobile-cooldown-fill-e"></div>
+      <div class="mobile-cooldown-text" id="mobile-cooldown-text-e"></div>
+    </button>
+    <button class="mobile-ability-btn" id="mobile-f">
+      <span class="mobile-ability-label" data-i18n="skill.m.push">Push</span>
+      <div class="mobile-cooldown-fill" id="mobile-cooldown-fill-f"></div>
+      <div class="mobile-cooldown-text" id="mobile-cooldown-text-f"></div>
+    </button>
+    <button class="mobile-ability-btn" id="mobile-g">
+      <span class="mobile-ability-label" data-i18n="skill.m.invuln">Invuln</span>
+      <div class="mobile-cooldown-fill" id="mobile-cooldown-fill-g"></div>
+      <div class="mobile-cooldown-text" id="mobile-cooldown-text-g"></div>
+    </button>
+    <button class="mobile-ability-btn" id="mobile-r">
+      <span class="mobile-ability-label">R</span>
+      <div class="mobile-cooldown-fill" id="mobile-cooldown-fill-r"></div>
+      <div class="mobile-cooldown-text" id="mobile-cooldown-text-r"></div>
+    </button>
+  </div>
+
+  <!-- Botao de socorro (so aparece enquanto o Axie esta congelado - ver
+       updateFrozenBanner em script.js) -->
+  <button id="mobile-t" hidden data-i18n="mobile.help">T - Call for help</button>
+
+  <!-- Biblioteca Three.js via CDN (versao r128, API global THREE) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Codigo do jogo -->
+  <script src="script.js?v=166"></script>
+  <!-- Trilha embutida (base64) - carrega em segundo plano; ver startMusic -->
+  <script src="music_data.js?v=1" defer></script>
+
+</body>
+</html>
