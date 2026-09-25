@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Attack – Protótipo</title>
+<style>
+  /* =========================================================
+     STYLE
+     ========================================================= */
+  :root {
+    --bg: #14161f;
+    --panel: #1e2130;
+    --text: #e8eaf2;
+    --muted: #8a90a8;
+    --accent: #ffd84a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #app {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  canvas {
+    background: #0c0e15;
+    border: 3px solid #3a3f58;
+    border-radius: 6px;
+    display: block;
+  }
+  #side {
+    width: 200px;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  h1 { font-size: 20px; margin: 0 0 12px; letter-spacing: 1px; }
+  .stat { margin: 10px 0; }
+  .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat .value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #chainMsg { color: var(--accent); font-weight: 700; min-height: 22px; font-size: 18px; }
+  button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border: 0;
+    border-radius: 6px;
+    background: #4a6cf7;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { background: #5b7bff; }
+  .help { font-size: 13px; color: var(--muted); line-height: 1.6; margin-top: 16px; }
+  kbd {
+    background: #2c3044; border: 1px solid #454b66; border-radius: 4px;
+    padding: 0 5px; font-size: 12px; color: var(--text);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="board"></canvas>
+  <div id="side">
+    <h1>PANEL ATTACK</h1>
+    <div class="stat"><div class="label">Pontos</div><div class="value" id="score">0</div></div>
+    <div class="stat"><div class="label">Maior chain</div><div class="value" id="bestChain">0</div></div>
+    <div id="chainMsg"></div>
+    <button id="restartBtn">Reiniciar (R)</button>
+    <div class="help">
+      <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> mover cursor<br>
+      <kbd>Espaço</kbd> / <kbd>Z</kbd> trocar blocos<br>
+      <kbd>R</kbd> reiniciar
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   CONFIG
+   Todos os valores ajustáveis ficam aqui.
+   ========================================================= */
+const CONFIG = {
+  COLS: 6,
+  ROWS: 12,
+  CELL: 48,                 // tamanho de cada célula em pixels
+  START_MIN_HEIGHT: 4,      // altura mínima inicial de cada coluna
+  START_MAX_HEIGHT: 7,      // altura máxima inicial de cada coluna
+  MIN_MATCH: 3,
+  CLEAR_DELAY_MS: 350,      // tempo em que os blocos combinados piscam antes de sumir
+  POINTS_PER_BLOCK: 10,
+  COMBO_BONUS_PER_BLOCK: 10,// bônus por bloco extra além de 3 num mesmo passo
+  CHAIN_BONUS: [0, 0, 50, 80, 150, 300, 400, 500, 700, 900, 1100, 1300], // índice = nº da chain
+};
+
+// Paleta de cores (índice 0 = vazio). Cada tipo tem também um símbolo
+// para ajudar a distinguir as cores (acessibilidade).
+const BLOCK_TYPES = [
+  null,
+  { color: "#e8434f", symbol: "heart"    }, // 1 vermelho
+  { color: "#3fbf5a", symbol: "circle"   }, // 2 verde
+  { color: "#3d7bf2", symbol: "triangle" }, // 3 azul
+  { color: "#f2c230", symbol: "star"     }, // 4 amarelo
+  { color: "#a653e0", symbol: "diamond"  }, // 5 roxo
+  { color: "#34c6d3", symbol: "square"   }, // 6 ciano
+];
+const NUM_COLORS = BLOCK_TYPES.length - 1;
+const EMPTY = 0;
+
+/* =========================================================
+   STATE
+   Todo o estado mutável do jogo vive em um único objeto,
+   facilitando reset, serialização e futuras extensões.
+   ========================================================= */
+const Phase = {
+  IDLE: "idle",           // jogador pode trocar blocos
+  CLEARING: "clearing",   // blocos combinados piscando
+};
+
+let state = null;
+
+function createInitialState() {
+  return {
+    grid: createStartingGrid(),
+    cursor: { x: 2, y: CONFIG.ROWS - 3 }, // x = coluna da esquerda do cursor
+    score: 0,
+    chain: 0,               // chain atual durante a resolução
+    bestChain: 0,
+    phase: Phase.IDLE,
+    clearing: [],           // lista de {x, y} marcados para remoção
+    phaseTimer: 0,          // ms restantes na fase atual
+    message: "",
+    messageTimer: 0,
+  };
+}
+
+/* =========================================================
+   GRID
+   grid[y][x], y = 0 é o topo, y = ROWS-1 é o fundo.
+   ========================================================= */
+function createEmptyGrid() {
+  return Array.from({ length: CONFIG.ROWS }, () => new Array(CONFIG.COLS).fill(EMPTY));
+}
+
+function inBounds(x, y) {
+  return x >= 0 && x < CONFIG.COLS && y >= 0 && y < CONFIG.ROWS;
+}
+
+function randInt(min, max) { // inclusivo
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+/**
+ * Gera a grade inicial: colunas com alturas aleatórias preenchidas de
+ * baixo para cima, escolhendo cores que não criam matches iniciais.
+ */
+function createStartingGrid() {
+  const grid = createEmptyGrid();
+  for (let x = 0; x < CONFIG.COLS; x++) {
+    const height = randInt(CONFIG.START_MIN_HEIGHT, CONFIG.START_MAX_HEIGHT);
+    for (let i = 0; i < height; i++) {
+      const y = CONFIG.ROWS - 1 - i;
+      grid[y][x] = pickSafeColor(grid, x, y);
+    }
+  }
+  return grid;
+}
+
+/**
+ * Escolhe uma cor que não forma 3 em linha com os vizinhos já colocados
+ * (dois à esquerda e dois abaixo — a ordem de preenchimento garante que
+ * só esses podem existir).
+ */
+function pickSafeColor(grid, x, y) {
+  const forbidden = new Set();
+  if (x >= 2 && grid[y][x - 1] !== EMPTY && grid[y][x - 1] === grid[y][x - 2]) {
+    forbidden.add(grid[y][x - 1]);
+  }
+  if (y <= CONFIG.ROWS - 3 && grid[y + 1][x] !== EMPTY && grid[y + 1][x] === grid[y + 2][x]) {
+    forbidden.add(grid[y + 1][x]);
+  }
+  const options = [];
+  for (let c = 1; c <= NUM_COLORS; c++) if (!forbidden.has(c)) options.push(c);
+  return options[randInt(0, options.length - 1)];
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+const KEY_ACTIONS = {
+  ArrowLeft:  () => moveCursor(-1, 0),
+  ArrowRight: () => moveCursor(1, 0),
+  ArrowUp:    () => moveCursor(0, -1),
+  ArrowDown:  () => moveCursor(0, 1),
+  Space:      () => trySwap(),
+  KeyZ:       () => trySwap(),
+  KeyR:       () => restart(),
+};
+
+document.addEventListener("keydown", (e) => {
+  const action = KEY_ACTIONS[e.code];
+  if (!action) return;
+  e.preventDefault();          // evita rolagem da página com setas/espaço
+  action();
+});
+
+document.getElementById("restartBtn").addEventListener("click", (e) => {
+  restart();
+  e.currentTarget.blur();      // evita que Espaço "clique" o botão depois
+});
+
+function moveCursor(dx, dy) {
+  const c = state.cursor;
+  // O cursor ocupa x e x+1, então x vai de 0 a COLS-2
+  c.x = Math.max(0, Math.min(CONFIG.COLS - 2, c.x + dx));
+  c.y = Math.max(0, Math.min(CONFIG.ROWS - 1, c.y + dy));
+}
+
+/* =========================================================
+   SWAP
+   ========================================================= */
+function trySwap() {
+  // Nesta versão, trocas ficam bloqueadas enquanto uma chain resolve.
+  if (state.phase !== Phase.IDLE) return;
+
+  const { x, y } = state.cursor;
+  const g = state.grid;
+  const a = g[y][x], b = g[y][x + 1];
+  if (a === EMPTY && b === EMPTY) return;
+
+  g[y][x] = b;
+  g[y][x + 1] = a;
+
+  state.chain = 0;
+  resolveBoard();
+}
+
+/* =========================================================
+   MATCH DETECTION
+   Retorna a lista de células (sem duplicatas) que fazem parte
+   de sequências de MIN_MATCH ou mais blocos iguais.
+   ========================================================= */
+function findMatches(grid) {
+  const marked = createEmptyGrid().map(row => row.map(() => false));
+
+  // Horizontal
+  for (let y = 0; y < CONFIG.ROWS; y++) {
+    let runStart = 0;
+    for (let x = 1; x <= CONFIG.COLS; x++) {
+      const same = x < CONFIG.COLS && grid[y][x] !== EMPTY && grid[y][x] === grid[y][runStart];
+      if (!same) {
+        if (grid[y][runStart] !== EMPTY && x - runStart >= CONFIG.MIN_MATCH) {
+          for (let k = runStart; k < x; k++) marked[y][k] = true;
+        }
+        runStart = x;
+      }
+    }
+  }
+
+  // Vertical
+  for (let x = 0; x < CONFIG.COLS; x++) {
+    let runStart = 0;
+    for (let y = 1; y <= CONFIG.ROWS; y++) {
+      const same = y < CONFIG.ROWS && grid[y][x] !== EMPTY && grid[y][x] === grid[runStart][x];
+      if (!same) {
+        if (grid[runStart][x] !== EMPTY && y - runStart >= CONFIG.MIN_MATCH) {
+          for (let k = runStart; k < y; k++) marked[k][x] = true;
+        }
+        runStart = y;
+      }
+    }
+  }
+
+  const cells = [];
+  for (let y = 0; y < CONFIG.ROWS; y++)
+    for (let x = 0; x < CONFIG.COLS; x++)
+      if (marked[y][x]) cells.push({ x, y });
+  return cells;
+}
+
+/* =========================================================
+   GRAVITY
+   Blocos caem imediatamente até o chão ou até outro bloco.
+   Retorna true se algum bloco se moveu.
+   ========================================================= */
+function applyGravity(grid) {
+  let moved = false;
+  for (let x = 0; x < CONFIG.COLS; x++) {
+    let writeY = CONFIG.ROWS - 1;
+    for (let y = CONFIG.ROWS - 1; y >= 0; y--) {
+      if (grid[y][x] !== EMPTY) {
+        if (y !== writeY) {
+          grid[writeY][x] = grid[y][x];
+          grid[y][x] = EMPTY;
+          moved = true;
+        }
+        writeY--;
+      }
+    }
+  }
+  return moved;
+}
+
+/* =========================================================
+   RESOLUTION / CHAINS
+   Fluxo: gravidade -> procura matches -> (se houver) fase
+   CLEARING -> remove -> gravidade -> procura de novo ...
+   Cada rodada consecutiva com match incrementa a chain.
+   ========================================================= */
+function resolveBoard() {
+  applyGravity(state.grid);
+  const matches = findMatches(state.grid);
+
+  if (matches.length === 0) {
+    finishChain();
+    return;
+  }
+
+  state.chain++;
+  addScore(matches.length, state.chain);
+
+  state.clearing = matches;
+  state.phase = Phase.CLEARING;
+  state.phaseTimer = CONFIG.CLEAR_DELAY_MS;
+}
+
+function clearMatchedBlocks() {
+  for (const { x, y } of state.clearing) state.grid[y][x] = EMPTY;
+  state.clearing = [];
+  state.phase = Phase.IDLE;
+  resolveBoard(); // gravidade + checagem de novos matches (chains)
+}
+
+function finishChain() {
+  state.phase = Phase.IDLE;
+  state.chain = 0;
+}
+
+/* =========================================================
+   SCORING
+   ========================================================= */
+function addScore(blockCount, chain) {
+  let points = blockCount * CONFIG.POINTS_PER_BLOCK;
+
+  const extra = blockCount - CONFIG.MIN_MATCH;
+  if (extra > 0) points += extra * CONFIG.COMBO_BONUS_PER_BLOCK;
+
+  if (chain >= 2) {
+    const table = CONFIG.CHAIN_BONUS;
+    points += table[Math.min(chain, table.length - 1)];
+  }
+
+  state.score += points;
+  state.bestChain = Math.max(state.bestChain, chain);
+
+  const parts = [];
+  if (chain >= 2) parts.push(`CHAIN x${chain}!`);
+  if (blockCount > CONFIG.MIN_MATCH) parts.push(`COMBO ${blockCount}`);
+  if (parts.length) showMessage(parts.join("  "));
+}
+
+function showMessage(text) {
+  state.message = text;
+  state.messageTimer = 1500;
+}
+
+/* =========================================================
+   UPDATE (lógica por frame)
+   ========================================================= */
+function update(dt) {
+  if (state.phase === Phase.CLEARING) {
+    state.phaseTimer -= dt;
+    if (state.phaseTimer <= 0) clearMatchedBlocks();
+  }
+  if (state.messageTimer > 0) {
+    state.messageTimer -= dt;
+    if (state.messageTimer <= 0) state.message = "";
+  }
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+canvas.width = CONFIG.COLS * CONFIG.CELL;
+canvas.height = CONFIG.ROWS * CONFIG.CELL;
+
+const ui = {
+  score: document.getElementById("score"),
+  bestChain: document.getElementById("bestChain"),
+  chainMsg: document.getElementById("chainMsg"),
+};
+
+function render(time) {
+  const S = CONFIG.CELL;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Linhas de fundo
+  ctx.strokeStyle = "#1b1f2c";
+  ctx.lineWidth = 1;
+  for (let x = 1; x < CONFIG.COLS; x++) line(x * S + 0.5, 0, x * S + 0.5, canvas.height);
+  for (let y = 1; y < CONFIG.ROWS; y++) line(0, y * S + 0.5, canvas.width, y * S + 0.5);
+
+  // Blocos
+  const clearingSet = new Set(state.clearing.map(c => c.y * CONFIG.COLS + c.x));
+  const blinkOn = Math.floor(time / 70) % 2 === 0;
+  for (let y = 0; y < CONFIG.ROWS; y++) {
+    for (let x = 0; x < CONFIG.COLS; x++) {
+      const type = state.grid[y][x];
+      if (type === EMPTY) continue;
+      const isClearing = clearingSet.has(y * CONFIG.COLS + x);
+      drawBlock(x, y, type, isClearing && blinkOn);
+    }
+  }
+
+  drawCursor(time);
+
+  // Painel lateral
+  ui.score.textContent = state.score;
+  ui.bestChain.textContent = state.bestChain;
+  ui.chainMsg.textContent = state.message;
+}
+
+function line(x1, y1, x2, y2) {
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+
+function drawBlock(x, y, type, flash) {
+  const S = CONFIG.CELL;
+  const pad = 2;
+  const px = x * S + pad, py = y * S + pad, size = S - pad * 2;
+  const def = BLOCK_TYPES[type];
+
+  ctx.fillStyle = flash ? "#ffffff" : def.color;
+  roundRect(px, py, size, size, 6);
+  ctx.fill();
+
+  // Borda escura + brilho superior simples
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  roundRect(px + 3, py + 3, size - 6, size * 0.35, 4);
+  ctx.fill();
+
+  if (!flash) drawSymbol(def.symbol, px + size / 2, py + size / 2, size * 0.26);
+}
+
+function drawSymbol(symbol, cx, cy, r) {
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  switch (symbol) {
+    case "circle":
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      break;
+    case "square":
+      ctx.rect(cx - r * 0.85, cy - r * 0.85, r * 1.7, r * 1.7);
+      break;
+    case "triangle":
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy + r * 0.8);
+      ctx.lineTo(cx - r, cy + r * 0.8);
+      ctx.closePath();
+      break;
+    case "diamond":
+      ctx.moveTo(cx, cy - r * 1.1);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r * 1.1);
+      ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      break;
+    case "star":
+      for (let i = 0; i < 10; i++) {
+        const rad = i % 2 === 0 ? r * 1.1 : r * 0.45;
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const px = cx + Math.cos(a) * rad, py = cy + Math.sin(a) * rad;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      break;
+    case "heart":
+      ctx.moveTo(cx, cy + r);
+      ctx.bezierCurveTo(cx - r * 1.4, cy, cx - r * 0.8, cy - r * 1.2, cx, cy - r * 0.4);
+      ctx.bezierCurveTo(cx + r * 0.8, cy - r * 1.2, cx + r * 1.4, cy, cx, cy + r);
+      break;
+  }
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawCursor(time) {
+  const S = CONFIG.CELL;
+  const { x, y } = state.cursor;
+  const pulse = 1 + Math.sin(time / 150) * 1;
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#ffffff";
+  roundRect(x * S + 1 - pulse, y * S + 1 - pulse, S * 2 - 2 + pulse * 2, S - 2 + pulse * 2, 6);
+  ctx.stroke();
+  // Divisória central
+  ctx.lineWidth = 2;
+  line(x * S + S, y * S + 6, x * S + S, y * S + S - 6);
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* =========================================================
+   GAME LOOP
+   ========================================================= */
+let lastTime = 0;
+function loop(time) {
+  const dt = lastTime ? time - lastTime : 0;
+  lastTime = time;
+  update(dt);
+  render(time);
+  requestAnimationFrame(loop);
+}
+
+/* =========================================================
+   BOOT / RESTART
+   ========================================================= */
+function restart() {
+  state = createInitialState();
+}
+
+restart();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
