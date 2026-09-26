@@ -14,6 +14,7 @@
     --text: #e8eaf2;
     --muted: #8a90a8;
     --accent: #ffd84a;
+    --danger: #ff5a64;
   }
   * { box-sizing: border-box; }
   body {
@@ -28,6 +29,8 @@
   }
   #app {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 24px;
     align-items: flex-start;
     padding: 16px;
@@ -37,18 +40,25 @@
     border: 3px solid #3a3f58;
     border-radius: 6px;
     display: block;
+    max-width: 100%;
+    height: auto;
   }
+  canvas:focus { outline: none; border-color: #5a6390; }
   #side {
-    width: 200px;
+    width: 210px;
     background: var(--panel);
     border-radius: 8px;
     padding: 16px;
   }
   h1 { font-size: 20px; margin: 0 0 12px; letter-spacing: 1px; }
-  .stat { margin: 10px 0; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
   .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .stat .value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  #chainMsg { color: var(--accent); font-weight: 700; min-height: 22px; font-size: 18px; }
+  .stat .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat.wide .value { font-size: 32px; }
+  #speed.fast { color: var(--accent); }
+  #speed.frenzy { color: var(--danger); }
+  #chainMsg { color: var(--accent); font-weight: 700; min-height: 22px; font-size: 18px; margin-top: 10px; }
   button {
     width: 100%;
     margin-top: 12px;
@@ -71,17 +81,22 @@
 </head>
 <body>
 <div id="app">
-  <canvas id="board"></canvas>
+  <canvas id="board" tabindex="0"></canvas>
   <div id="side">
     <h1>PANEL ATTACK</h1>
-    <div class="stat"><div class="label">Pontos</div><div class="value" id="score">0</div></div>
-    <div class="stat"><div class="label">Maior chain</div><div class="value" id="bestChain">0</div></div>
+    <div class="stats">
+      <div class="stat wide"><div class="label">Tempo</div><div class="value" id="timer">00:00</div></div>
+      <div class="stat wide"><div class="label">Pontos</div><div class="value" id="score">0</div></div>
+      <div class="stat"><div class="label">Maior chain</div><div class="value" id="bestChain">0</div></div>
+      <div class="stat"><div class="label">Linhas/min</div><div class="value" id="speed">0</div></div>
+    </div>
     <div id="chainMsg"></div>
     <button id="restartBtn">Reiniciar (R)</button>
     <div class="help">
       <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> mover cursor<br>
       <kbd>Espaço</kbd> / <kbd>Z</kbd> trocar blocos<br>
-      <kbd>R</kbd> reiniciar
+      <kbd>R</kbd> reiniciar<br><br>
+      A pilha sobe sozinha e acelera com o tempo. Se um bloco passar do topo, é Game Over.
     </div>
   </div>
 </div>
@@ -94,9 +109,9 @@
    Todos os valores ajustáveis ficam aqui.
    ========================================================= */
 const CONFIG = {
-  COLS: 6,
-  ROWS: 12,
-  CELL: 48,                 // tamanho de cada célula em pixels
+  COLS: 7,
+  ROWS: 14,
+  CELL: 44,                 // tamanho de cada célula em pixels
   START_MIN_HEIGHT: 4,      // altura mínima inicial de cada coluna
   START_MAX_HEIGHT: 7,      // altura máxima inicial de cada coluna
   MIN_MATCH: 3,
@@ -104,6 +119,20 @@ const CONFIG = {
   POINTS_PER_BLOCK: 10,
   COMBO_BONUS_PER_BLOCK: 10,// bônus por bloco extra além de 3 num mesmo passo
   CHAIN_BONUS: [0, 0, 50, 80, 150, 300, 400, 500, 700, 900, 1100, 1300], // índice = nº da chain
+
+  // --- Rising stack ---
+  // Intervalo (ms) para a pilha subir uma linha inteira.
+  // Antes de FRENZY_TIME_MS: cai exponencialmente de RISE_START_MS até RISE_AT_FRENZY_MS.
+  // Em FRENZY_TIME_MS: multiplica por FRENZY_MULT (salto brusco) e passa a
+  // cair FRENZY_DECAY_FACTOR vezes mais rápido, até o piso RISE_MIN_MS.
+  RISE_START_MS: 9000,
+  RISE_AT_FRENZY_MS: 1500,
+  FRENZY_TIME_MS: 5 * 60 * 1000,
+  FRENZY_MULT: 0.6,
+  FRENZY_DECAY_FACTOR: 1.5,
+  RISE_MIN_MS: 150,
+  SPEED_WARNING_EVERY_MS: 60 * 1000, // aviso de "velocidade aumentou" a cada minuto
+  BANNER_MS: 2000,
 };
 
 // Paleta de cores (índice 0 = vazio). Cada tipo tem também um símbolo
@@ -126,15 +155,21 @@ const EMPTY = 0;
    facilitando reset, serialização e futuras extensões.
    ========================================================= */
 const Phase = {
-  IDLE: "idle",           // jogador pode trocar blocos
-  CLEARING: "clearing",   // blocos combinados piscando
+  IDLE: "idle",           // jogador pode trocar blocos; pilha sobe
+  CLEARING: "clearing",   // blocos combinados piscando; pilha pausada
+  GAME_OVER: "gameover",
 };
 
 let state = null;
 
 function createInitialState() {
+  const grid = createStartingGrid();
   return {
-    grid: createStartingGrid(),
+    grid,
+    nextRow: createNextRow(grid), // linha que está "nascendo" embaixo (prévia)
+    riseProgress: 0,        // 0..1: quanto da próxima linha já apareceu
+    elapsedMs: 0,           // tempo de partida
+    speedLevel: 0,          // minuto atual (para disparar avisos)
     cursor: { x: 2, y: CONFIG.ROWS - 3 }, // x = coluna da esquerda do cursor
     score: 0,
     chain: 0,               // chain atual durante a resolução
@@ -144,6 +179,8 @@ function createInitialState() {
     phaseTimer: 0,          // ms restantes na fase atual
     message: "",
     messageTimer: 0,
+    banner: "",             // aviso grande sobre o tabuleiro (velocidade)
+    bannerTimer: 0,
   };
 }
 
@@ -161,6 +198,12 @@ function inBounds(x, y) {
 
 function randInt(min, max) { // inclusivo
   return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function randomColorExcept(forbidden) {
+  const options = [];
+  for (let c = 1; c <= NUM_COLORS; c++) if (!forbidden.has(c)) options.push(c);
+  return options[randInt(0, options.length - 1)];
 }
 
 /**
@@ -192,9 +235,95 @@ function pickSafeColor(grid, x, y) {
   if (y <= CONFIG.ROWS - 3 && grid[y + 1][x] !== EMPTY && grid[y + 1][x] === grid[y + 2][x]) {
     forbidden.add(grid[y + 1][x]);
   }
-  const options = [];
-  for (let c = 1; c <= NUM_COLORS; c++) if (!forbidden.has(c)) options.push(c);
-  return options[randInt(0, options.length - 1)];
+  return randomColorExcept(forbidden);
+}
+
+/* =========================================================
+   RISING STACK
+   A próxima linha é gerada com antecedência (para a prévia) e
+   corrigida no instante em que entra, pois o jogador pode ter
+   mexido nos blocos logo acima dela nesse meio tempo.
+   ========================================================= */
+
+/** Cores que, colocadas em row[x], formariam um match. */
+function forbiddenForNewRow(row, x, grid) {
+  const forbidden = new Set();
+  const at = (i) => (i >= 0 && i < CONFIG.COLS ? row[i] : EMPTY);
+  // Horizontal: duas à esquerda, duas à direita, ou uma de cada lado
+  if (at(x - 1) !== EMPTY && at(x - 1) === at(x - 2)) forbidden.add(at(x - 1));
+  if (at(x + 1) !== EMPTY && at(x + 1) === at(x + 2)) forbidden.add(at(x + 1));
+  if (at(x - 1) !== EMPTY && at(x - 1) === at(x + 1)) forbidden.add(at(x - 1));
+  // Vertical: as duas células que ficarão logo acima (fundo atual da grade)
+  const b1 = grid[CONFIG.ROWS - 1][x], b2 = grid[CONFIG.ROWS - 2][x];
+  if (b1 !== EMPTY && b1 === b2) forbidden.add(b1);
+  return forbidden;
+}
+
+function createNextRow(grid) {
+  const row = new Array(CONFIG.COLS).fill(EMPTY);
+  for (let x = 0; x < CONFIG.COLS; x++) row[x] = randomColorExcept(forbiddenForNewRow(row, x, grid));
+  return row;
+}
+
+/** Re-sorteia apenas as células da prévia que agora criariam match. */
+function fixNextRow(row, grid) {
+  for (let x = 0; x < CONFIG.COLS; x++) {
+    const forbidden = forbiddenForNewRow(row, x, grid);
+    if (forbidden.has(row[x])) row[x] = randomColorExcept(forbidden);
+  }
+}
+
+/**
+ * Intervalo atual (ms) para subir uma linha, em função do tempo de partida.
+ * Curva exponencial suave até os 5 min, depois salto + queda mais íngreme.
+ */
+function riseIntervalMs(t) {
+  const { RISE_START_MS, RISE_AT_FRENZY_MS, FRENZY_TIME_MS, FRENZY_MULT,
+          FRENZY_DECAY_FACTOR, RISE_MIN_MS } = CONFIG;
+  const ratio = RISE_AT_FRENZY_MS / RISE_START_MS;
+  let ms;
+  if (t < FRENZY_TIME_MS) {
+    ms = RISE_START_MS * Math.pow(ratio, t / FRENZY_TIME_MS);
+  } else {
+    const after = (t - FRENZY_TIME_MS) / FRENZY_TIME_MS;
+    ms = RISE_AT_FRENZY_MS * FRENZY_MULT * Math.pow(ratio, after * FRENZY_DECAY_FACTOR);
+  }
+  return Math.max(RISE_MIN_MS, ms);
+}
+
+function isFrenzy() {
+  return state.elapsedMs >= CONFIG.FRENZY_TIME_MS;
+}
+
+/** Empurra a grade uma linha para cima e insere a nova linha no fundo. */
+function pushRow() {
+  const g = state.grid;
+  // Qualquer bloco na linha do topo seria empurrado para fora → Game Over
+  if (g[0].some(c => c !== EMPTY)) {
+    gameOver();
+    return;
+  }
+  fixNextRow(state.nextRow, g);
+  g.shift();
+  g.push(state.nextRow);
+  state.nextRow = createNextRow(g);
+
+  // O cursor acompanha os blocos (sobe junto), limitado ao topo
+  state.cursor.y = Math.max(0, state.cursor.y - 1);
+}
+
+function updateRise(dt) {
+  // Assim como no original, a pilha para enquanto há blocos sendo removidos
+  if (state.phase !== Phase.IDLE) return;
+  state.riseProgress += dt / riseIntervalMs(state.elapsedMs);
+  while (state.riseProgress >= 1 && state.phase === Phase.IDLE) {
+    state.riseProgress -= 1;
+    pushRow();
+  }
+}
+
+function isInDanger() {
+  return state.grid[0].some(c => c !== EMPTY) || state.grid[1].some(c => c !== EMPTY);
 }
 
 /* =========================================================
@@ -220,6 +349,7 @@ document.addEventListener("keydown", (e) => {
 document.getElementById("restartBtn").addEventListener("click", (e) => {
   restart();
   e.currentTarget.blur();      // evita que Espaço "clique" o botão depois
+  canvas.focus();
 });
 
 function moveCursor(dx, dy) {
@@ -349,6 +479,12 @@ function finishChain() {
   state.chain = 0;
 }
 
+function gameOver() {
+  state.phase = Phase.GAME_OVER;
+  state.clearing = [];
+  state.banner = "";
+}
+
 /* =========================================================
    SCORING
    ========================================================= */
@@ -377,18 +513,45 @@ function showMessage(text) {
   state.messageTimer = 1500;
 }
 
+function showBanner(text) {
+  state.banner = text;
+  state.bannerTimer = CONFIG.BANNER_MS;
+}
+
 /* =========================================================
    UPDATE (lógica por frame)
    ========================================================= */
 function update(dt) {
+  if (state.phase === Phase.GAME_OVER) return;
+
+  state.elapsedMs += dt;
+  updateSpeedWarnings();
+
   if (state.phase === Phase.CLEARING) {
     state.phaseTimer -= dt;
     if (state.phaseTimer <= 0) clearMatchedBlocks();
   }
+
+  updateRise(dt);
+
   if (state.messageTimer > 0) {
     state.messageTimer -= dt;
     if (state.messageTimer <= 0) state.message = "";
   }
+  if (state.bannerTimer > 0) {
+    state.bannerTimer -= dt;
+    if (state.bannerTimer <= 0) state.banner = "";
+  }
+}
+
+/** Mostra um aviso sempre que um novo minuto de partida começa. */
+function updateSpeedWarnings() {
+  const level = Math.floor(state.elapsedMs / CONFIG.SPEED_WARNING_EVERY_MS);
+  if (level <= state.speedLevel) return;
+  state.speedLevel = level;
+  const frenzyLevel = Math.floor(CONFIG.FRENZY_TIME_MS / CONFIG.SPEED_WARNING_EVERY_MS);
+  if (level === frenzyLevel) showBanner("MODO FRENÉTICO!");
+  else showBanner(isFrenzy() ? "VELOCIDADE ↑↑" : "VELOCIDADE ↑");
 }
 
 /* =========================================================
@@ -400,20 +563,44 @@ canvas.width = CONFIG.COLS * CONFIG.CELL;
 canvas.height = CONFIG.ROWS * CONFIG.CELL;
 
 const ui = {
+  timer: document.getElementById("timer"),
   score: document.getElementById("score"),
   bestChain: document.getElementById("bestChain"),
+  speed: document.getElementById("speed"),
   chainMsg: document.getElementById("chainMsg"),
 };
 
+function formatTime(ms) {
+  const total = Math.floor(ms / 1000);
+  const m = String(Math.floor(total / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 function render(time) {
   const S = CONFIG.CELL;
+  // Deslocamento vertical da pilha (em pixels) conforme a próxima linha surge
+  const offset = state.riseProgress * S;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Linhas de fundo
+  // Aviso de perigo: brilho vermelho no topo quando a pilha está quase lá
+  if (isInDanger() && state.phase !== Phase.GAME_OVER) {
+    const alpha = 0.25 + 0.15 * Math.sin(time / 120);
+    const grad = ctx.createLinearGradient(0, 0, 0, S * 2);
+    grad.addColorStop(0, `rgba(255,60,70,${alpha})`);
+    grad.addColorStop(1, "rgba(255,60,70,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, S * 2);
+  }
+
+  // Linhas de fundo (sobem junto com a pilha)
   ctx.strokeStyle = "#1b1f2c";
   ctx.lineWidth = 1;
   for (let x = 1; x < CONFIG.COLS; x++) line(x * S + 0.5, 0, x * S + 0.5, canvas.height);
-  for (let y = 1; y < CONFIG.ROWS; y++) line(0, y * S + 0.5, canvas.width, y * S + 0.5);
+  for (let y = 1; y <= CONFIG.ROWS; y++) {
+    const py = Math.round(y * S - offset) + 0.5;
+    line(0, py, canvas.width, py);
+  }
 
   // Blocos
   const clearingSet = new Set(state.clearing.map(c => c.y * CONFIG.COLS + c.x));
@@ -423,15 +610,27 @@ function render(time) {
       const type = state.grid[y][x];
       if (type === EMPTY) continue;
       const isClearing = clearingSet.has(y * CONFIG.COLS + x);
-      drawBlock(x, y, type, isClearing && blinkOn);
+      drawBlock(x, y * S - offset, type, isClearing && blinkOn, false);
     }
   }
 
-  drawCursor(time);
+  // Próxima linha surgindo (escurecida, ainda não jogável)
+  for (let x = 0; x < CONFIG.COLS; x++) {
+    drawBlock(x, CONFIG.ROWS * S - offset, state.nextRow[x], false, true);
+  }
+
+  drawCursor(time, offset);
+
+  if (state.banner) drawBanner(state.banner, time);
+  if (state.phase === Phase.GAME_OVER) drawGameOver();
 
   // Painel lateral
+  ui.timer.textContent = formatTime(state.elapsedMs);
   ui.score.textContent = state.score;
   ui.bestChain.textContent = state.bestChain;
+  const rowsPerMin = 60000 / riseIntervalMs(state.elapsedMs);
+  ui.speed.textContent = rowsPerMin < 10 ? rowsPerMin.toFixed(1) : Math.round(rowsPerMin);
+  ui.speed.className = isFrenzy() ? "value frenzy" : rowsPerMin >= 20 ? "value fast" : "value";
   ui.chainMsg.textContent = state.message;
 }
 
@@ -439,11 +638,15 @@ function line(x1, y1, x2, y2) {
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
 }
 
-function drawBlock(x, y, type, flash) {
+/** Desenha um bloco na coluna x, na posição vertical em pixels pixelY. */
+function drawBlock(x, pixelY, type, flash, dim) {
   const S = CONFIG.CELL;
   const pad = 2;
-  const px = x * S + pad, py = y * S + pad, size = S - pad * 2;
+  const px = x * S + pad, py = pixelY + pad, size = S - pad * 2;
   const def = BLOCK_TYPES[type];
+
+  ctx.save();
+  if (dim) ctx.globalAlpha = 0.35;
 
   ctx.fillStyle = flash ? "#ffffff" : def.color;
   roundRect(px, py, size, size, 6);
@@ -458,6 +661,7 @@ function drawBlock(x, y, type, flash) {
   ctx.fill();
 
   if (!flash) drawSymbol(def.symbol, px + size / 2, py + size / 2, size * 0.26);
+  ctx.restore();
 }
 
 function drawSymbol(symbol, cx, cy, r) {
@@ -504,17 +708,51 @@ function drawSymbol(symbol, cx, cy, r) {
   ctx.stroke();
 }
 
-function drawCursor(time) {
+function drawCursor(time, offset) {
   const S = CONFIG.CELL;
   const { x, y } = state.cursor;
+  const top = y * S - offset;
   const pulse = 1 + Math.sin(time / 150) * 1;
   ctx.lineWidth = 3;
   ctx.strokeStyle = "#ffffff";
-  roundRect(x * S + 1 - pulse, y * S + 1 - pulse, S * 2 - 2 + pulse * 2, S - 2 + pulse * 2, 6);
+  roundRect(x * S + 1 - pulse, top + 1 - pulse, S * 2 - 2 + pulse * 2, S - 2 + pulse * 2, 6);
   ctx.stroke();
   // Divisória central
   ctx.lineWidth = 2;
-  line(x * S + S, y * S + 6, x * S + S, y * S + S - 6);
+  line(x * S + S, top + 6, x * S + S, top + S - 6);
+}
+
+function drawBanner(text, time) {
+  const cy = canvas.height * 0.4;
+  ctx.save();
+  ctx.fillStyle = "rgba(12,14,21,0.75)";
+  ctx.fillRect(0, cy - 30, canvas.width, 60);
+  ctx.font = "bold 26px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const blink = Math.floor(time / 180) % 2 === 0;
+  ctx.fillStyle = isFrenzy() ? (blink ? "#ff5a64" : "#ffffff") : (blink ? "#ffd84a" : "#ffffff");
+  ctx.fillText(text, canvas.width / 2, cy);
+  ctx.restore();
+}
+
+function drawGameOver() {
+  ctx.save();
+  ctx.fillStyle = "rgba(8,9,14,0.78)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  ctx.fillStyle = "#ff5a64";
+  ctx.font = "bold 40px system-ui, sans-serif";
+  ctx.fillText("GAME OVER", cx, cy - 40);
+  ctx.fillStyle = "#e8eaf2";
+  ctx.font = "600 18px system-ui, sans-serif";
+  ctx.fillText(`${state.score} pontos · ${formatTime(state.elapsedMs)}`, cx, cy + 4);
+  ctx.fillStyle = "#8a90a8";
+  ctx.font = "15px system-ui, sans-serif";
+  ctx.fillText("Aperte R para jogar de novo", cx, cy + 36);
+  ctx.restore();
 }
 
 function roundRect(x, y, w, h, r) {
@@ -532,7 +770,8 @@ function roundRect(x, y, w, h, r) {
    ========================================================= */
 let lastTime = 0;
 function loop(time) {
-  const dt = lastTime ? time - lastTime : 0;
+  // Limita dt para a pilha não "pular" várias linhas ao voltar de outra aba
+  const dt = lastTime ? Math.min(time - lastTime, 100) : 0;
   lastTime = time;
   update(dt);
   render(time);
@@ -547,6 +786,7 @@ function restart() {
 }
 
 restart();
+canvas.focus();
 requestAnimationFrame(loop);
 </script>
 </body>
