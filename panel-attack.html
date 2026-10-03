@@ -207,6 +207,93 @@
     padding: 0 5px; font-size: 12px; font-family: inherit; color: var(--text);
   }
   .menu-btn kbd { font-weight: 500; }
+
+  /* ---------- Opções: áudio ---------- */
+  .opt-section {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+  }
+  .opt-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .opt-name { font-weight: 600; }
+  .toggle {
+    min-width: 112px;
+    padding: 7px 12px;
+    font: inherit;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    cursor: pointer;
+  }
+  .toggle[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .toggle:focus-visible, .bind-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .slider-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; }
+  .slider-row label { grid-column: 1 / -1; }
+  .slider-row input[type="range"] { width: 100%; accent-color: var(--primary); }
+  .slider-row input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+  .slider-row output { min-width: 44px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Controles (remapeamento) ---------- */
+  .menu-card.wide { max-width: 780px; }
+  .bind-status {
+    margin: 0;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--panel-2);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .bind-status.active { background: var(--accent); color: #14161f; font-weight: 700; }
+  .bind-wrap { width: 100%; overflow-x: auto; }
+  .bind-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .bind-table th, .bind-table td { padding: 5px 4px; text-align: left; }
+  .bind-table thead th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .bind-table tbody th { font-weight: 600; padding-right: 10px; min-width: 130px; }
+  .bind-table tbody tr + tr { border-top: 1px solid var(--line); }
+  .bind-slot {
+    width: 100%;
+    min-width: 96px;
+    padding: 7px 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .bind-slot:hover { border-color: var(--accent); }
+  .bind-slot.empty { color: var(--muted); }
+  .bind-slot.listening { background: var(--accent); border-color: var(--accent); color: #14161f; }
+  .pad-status { width: 100%; font-size: 13px; color: var(--muted); }
+  .actions.row { flex-direction: row; flex-wrap: wrap; }
+  .actions.row .menu-btn { flex: 1 1 200px; }
+  .help .muted { color: var(--muted); }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    max-width: calc(100% - 32px);
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--panel-2);
+    color: var(--text);
+    font-weight: 600;
+    z-index: 10;
+  }
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; }
   }
@@ -229,7 +316,7 @@
         <button class="menu-btn" disabled>Campanha <span class="badge">Em breve</span></button>
         <button class="menu-btn" id="btnOptions">Opções / Créditos</button>
       </nav>
-      <div class="menu-hint">↑ ↓ para escolher · Enter para confirmar</div>
+      <div class="menu-hint" id="menuHint">↑ ↓ para escolher · Enter para confirmar</div>
     </div>
   </section>
 
@@ -237,6 +324,32 @@
   <section id="optionsScreen" class="screen" hidden>
     <div class="menu-card">
       <h2 class="opt-title">Opções</h2>
+
+      <div class="opt-section">Áudio</div>
+      <div class="opt-row">
+        <div class="opt-head">
+          <span class="opt-name" id="lblMusic">Música</span>
+          <button class="toggle" id="optMusicOn" aria-labelledby="lblMusic"></button>
+        </div>
+        <div class="slider-row">
+          <label class="opt-label" for="optMusicVolume">Volume da música</label>
+          <input type="range" id="optMusicVolume" min="0" max="100" step="5">
+          <output id="optMusicVolumeOut" for="optMusicVolume"></output>
+        </div>
+      </div>
+      <div class="opt-row">
+        <div class="opt-head">
+          <span class="opt-name" id="lblSfx">Efeitos sonoros (SFX)</span>
+          <button class="toggle" id="optSfxOn" aria-labelledby="lblSfx"></button>
+        </div>
+        <div class="slider-row">
+          <label class="opt-label" for="optSfxVolume">Volume dos efeitos</label>
+          <input type="range" id="optSfxVolume" min="0" max="100" step="5">
+          <output id="optSfxVolumeOut" for="optSfxVolume"></output>
+        </div>
+      </div>
+
+      <div class="opt-section">Jogo</div>
       <div class="opt-row">
         <div class="opt-label" id="lblSpeed">Velocidade inicial da pilha</div>
         <div class="seg" role="group" aria-labelledby="lblSpeed" id="optSpeed">
@@ -252,24 +365,42 @@
           <button id="optAnimFast" data-value="fast">Rápida</button>
         </div>
       </div>
-      <div class="opt-row">
-        <div class="opt-label" id="lblVolume">Volume dos efeitos</div>
-        <div class="seg" role="group" aria-labelledby="lblVolume" id="optVolume">
-          <button id="optVolumeOff" data-value="off">Mudo</button>
-          <button id="optVolumeLow" data-value="low">Baixo</button>
-          <button id="optVolumeMid" data-value="mid">Médio</button>
-          <button id="optVolumeHigh" data-value="high">Alto</button>
-        </div>
+
+      <div class="opt-section">Controles</div>
+      <div class="actions">
+        <button class="menu-btn" id="btnControls">Configurar controles <span aria-hidden="true">▶</span></button>
       </div>
+
       <div class="credits">
         <strong>Créditos</strong><br>
         Protótipo inspirado em Tetris Attack / Panel de Pon.<br>
         Feito com HTML, CSS e JavaScript puro. Os blocos elementais são desenhados em canvas
-        a partir da referência “Elemental Puzzle Blocks”. Efeitos sonoros sintetizados
+        a partir da referência “Elemental Puzzle Blocks”. Música e efeitos sonoros sintetizados
         por <code>sounds/generate_sounds.py</code>.
       </div>
       <div class="actions">
         <button class="menu-btn" id="btnOptionsBack">Voltar <kbd>Esc</kbd></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CONTROLES (REMAPEAMENTO) ======================= -->
+  <section id="controlsScreen" class="screen" hidden>
+    <div class="menu-card wide">
+      <h2 class="opt-title">Controles</h2>
+      <p class="bind-status" id="bindStatus" role="status" aria-live="polite"></p>
+      <div class="bind-wrap">
+        <table class="bind-table">
+          <thead>
+            <tr><th scope="col">Ação</th><th scope="col" colspan="2">Teclado</th><th scope="col" colspan="2">Controle</th></tr>
+          </thead>
+          <tbody id="bindRows"></tbody>
+        </table>
+      </div>
+      <div class="pad-status" id="padStatus"></div>
+      <div class="actions row">
+        <button class="menu-btn" id="btnBindReset">Restaurar padrão</button>
+        <button class="menu-btn" id="btnControlsBack">Voltar <kbd>Esc</kbd></button>
       </div>
     </div>
   </section>
@@ -282,8 +413,9 @@
       <div class="overlay" id="pauseOverlay" hidden>
         <h2>PAUSADO</h2>
         <div class="actions">
-          <button class="menu-btn primary" id="btnResume" data-no-click-sound>Continuar <kbd>Esc</kbd></button>
-          <button class="menu-btn" id="btnPauseRestart">Reiniciar <kbd>R</kbd></button>
+          <button class="menu-btn primary" id="btnResume" data-no-click-sound>Continuar <kbd id="resumeKey">Esc</kbd></button>
+          <button class="menu-btn" id="btnPauseRestart">Reiniciar <kbd id="pauseRestartKey">R</kbd></button>
+          <button class="menu-btn" id="btnPauseOptions">Opções <kbd>O</kbd></button>
           <button class="menu-btn" id="btnPauseMenu">Voltar ao Menu <kbd>M</kbd></button>
         </div>
       </div>
@@ -315,17 +447,12 @@
         <button class="side-btn" id="restartBtn">Reiniciar</button>
         <button class="side-btn secondary" id="menuBtn">Menu</button>
       </div>
-      <div class="help">
-        <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> ou <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> mover cursor<br>
-        <kbd>Espaço</kbd> / <kbd>Z</kbd> trocar blocos<br>
-        <kbd>F</kbd> / <kbd>Q</kbd> (segurar) subir a pilha rápido<br>
-        <kbd>Esc</kbd> / <kbd>P</kbd> pausar<br>
-        <kbd>R</kbd> reiniciar<br><br>
-        A pilha sobe sozinha e acelera com o tempo. Se um bloco passar do topo, é Game Over.
-      </div>
+      <div class="help" id="helpText"></div>
     </div>
   </section>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
 "use strict";
@@ -380,13 +507,7 @@ const ANIM_PRESETS = {
   normal: 1,
   fast:   0.6,
 };
-// Volume geral dos efeitos sonoros
-const VOLUME_PRESETS = {
-  off:  0,
-  low:  0.35,
-  mid:  0.65,
-  high: 1,
-};
+
 
 const EMPTY = 0;
 const BOARD_W = CONFIG.COLS * CONFIG.CELL;
@@ -423,13 +544,25 @@ const SETTINGS_KEY = "panelAttack.settings";
 const settings = loadSettings();
 
 function loadSettings() {
-  const defaults = { speed: "normal", anim: "normal", volume: "mid" };
+  const defaults = {
+    speed: "normal",
+    anim: "normal",
+    musicOn: true,
+    musicVolume: 60,   // 0..100
+    sfxOn: true,
+    sfxVolume: 70,     // 0..100
+  };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    const flag = (v, d) => (typeof v === "boolean" ? v : d);
+    const percent = (v, d) => (Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : d);
     return {
       speed: saved.speed in SPEED_PRESETS ? saved.speed : defaults.speed,
       anim: saved.anim in ANIM_PRESETS ? saved.anim : defaults.anim,
-      volume: saved.volume in VOLUME_PRESETS ? saved.volume : defaults.volume,
+      musicOn: flag(saved.musicOn, defaults.musicOn),
+      musicVolume: percent(saved.musicVolume, defaults.musicVolume),
+      sfxOn: flag(saved.sfxOn, defaults.sfxOn),
+      sfxVolume: percent(saved.sfxVolume, defaults.sfxVolume),
     };
   } catch {
     return defaults;
@@ -446,7 +579,7 @@ const clearMs = () => CONFIG.CLEAR_MS * animMult();
 
 /* =========================================================
    AUDIO
-   Efeitos da pasta sounds/ (gerados por sounds/generate_sounds.py).
+   Música e efeitos da pasta sounds/ (gerados por sounds/generate_sounds.py).
    Usa Web Audio (baixa latência, vários sons ao mesmo tempo). Se os
    arquivos não puderem ser lidos via fetch (ex.: HTML aberto direto do
    disco, em file://), usa elementos <audio> como alternativa.
@@ -475,6 +608,10 @@ const SOUND_FILES = {
   pause:     ["pause.wav"],
   unpause:   ["unpause.wav"],
 };
+const MUSIC_FILE = "music_endless.wav";
+const MUSIC_MIX = 0.6;        // a música fica um pouco abaixo dos efeitos
+const MUSIC_DUCK = 0.35;      // volume relativo da música com o jogo pausado
+const MUSIC_MENU_LEVEL = 0.6; // volume relativo da música nos menus
 const MAX_CHAIN_SOUND = 8;          // chains acima disso repetem o som da x8
 const FALL_MULTI_MIN_BLOCKS = 3;    // a partir de quantos blocos a queda usa o som "vários"
 const RISE_SOUND_MIN_GAP_MS = 400;  // evita metralhar o som de subida no turbo / modo frenético
@@ -486,6 +623,7 @@ const Sound = {
   elements: {},    // arquivo → HTMLAudioElement (alternativa)
   started: false,
   loop: null,      // som em loop tocando agora (aviso de perigo)
+  music: null,     // música tocando agora
   lastPlayed: {},
 
   /** Navegadores só liberam áudio após um gesto do jogador (tecla ou clique). */
@@ -498,7 +636,7 @@ const Sound = {
         this.master = this.ctx.createGain();
         this.master.connect(this.ctx.destination);
       }
-      new Set(Object.values(SOUND_FILES).flat()).forEach(file => this.load(file));
+      new Set([...Object.values(SOUND_FILES).flat(), MUSIC_FILE]).forEach(file => this.load(file));
     }
     if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
   },
@@ -518,7 +656,11 @@ const Sound = {
   },
 
   volume() {
-    return VOLUME_PRESETS[settings.volume];
+    return settings.sfxOn ? settings.sfxVolume / 100 : 0;
+  },
+
+  musicVolume() {
+    return settings.musicOn ? (settings.musicVolume / 100) * MUSIC_MIX : 0;
   },
 
   pick(name) {
@@ -552,18 +694,8 @@ const Sound = {
     }
   },
 
-  /** Mantém um som em loop ligado ou desligado (chamado a cada frame). */
-  setLoop(name, on) {
-    const v = this.volume();
-    if (!on || v <= 0 || !this.started) {
-      this.stopLoop();
-      return;
-    }
-    if (this.loop) {
-      this.loop.setVolume(v);
-      return;
-    }
-    const file = SOUND_FILES[name][0];
+  /** Começa a tocar um arquivo em loop; devolve {stop, setVolume} ou null se não carregou. */
+  startLooped(file, v) {
     if (this.buffers[file]) {
       const src = this.ctx.createBufferSource();
       const gain = this.ctx.createGain();
@@ -572,13 +704,44 @@ const Sound = {
       gain.gain.value = v;
       src.connect(gain).connect(this.master);
       src.start();
-      this.loop = { stop: () => src.stop(), setVolume: (x) => { gain.gain.value = x; } };
-    } else if (this.elements[file]) {
+      return { stop: () => src.stop(), setVolume: (x) => { gain.gain.value = x; } };
+    }
+    if (this.elements[file]) {
       const el = this.elements[file].cloneNode();
       el.loop = true;
       el.volume = Math.min(1, v);
       el.play().catch(() => {});
-      this.loop = { stop: () => el.pause(), setVolume: (x) => { el.volume = Math.min(1, x); } };
+      return { stop: () => el.pause(), setVolume: (x) => { el.volume = Math.min(1, x); } };
+    }
+    return null;
+  },
+
+  /** Mantém um efeito em loop ligado ou desligado (chamado a cada frame). */
+  setLoop(name, on) {
+    const v = this.volume();
+    if (!on || v <= 0 || !this.started) {
+      this.stopLoop();
+      return;
+    }
+    if (this.loop) this.loop.setVolume(v);
+    else this.loop = this.startLooped(SOUND_FILES[name][0], v);
+  },
+
+  /** Mantém a música ligada ou desligada (chamado a cada frame); `level` abaixa o volume. */
+  setMusic(on, level = 1) {
+    const v = this.musicVolume() * level;
+    if (!on || v <= 0 || !this.started) {
+      this.stopMusic();
+      return;
+    }
+    if (this.music) this.music.setVolume(v);
+    else this.music = this.startLooped(MUSIC_FILE, v);
+  },
+
+  stopMusic() {
+    if (this.music) {
+      this.music.stop();
+      this.music = null;
     }
   },
 
@@ -600,6 +763,121 @@ document.addEventListener("click", (e) => {
   const button = e.target.closest("button");
   if (button && !button.disabled && !("noClickSound" in button.dataset)) Sound.play("uiClick");
 });
+
+/* =========================================================
+   BINDINGS (mapeamento de controles)
+   Cada ação tem 2 campos no teclado e 2 no controle, todos remapeáveis
+   e salvos no navegador. Teclado usa KeyboardEvent.code; controle usa
+   "b<N>" (botão N) e "a<N>-" / "a<N>+" (eixo N para um lado), no
+   layout padrão da Gamepad API (Xbox / PlayStation).
+   ========================================================= */
+const ACTIONS = [
+  { id: "left",    label: "Mover para a esquerda" },
+  { id: "right",   label: "Mover para a direita" },
+  { id: "up",      label: "Mover para cima" },
+  { id: "down",    label: "Mover para baixo" },
+  { id: "swap",    label: "Trocar blocos" },
+  { id: "turbo",   label: "Subir a pilha rápido (segurar)" },
+  { id: "pause",   label: "Pausar / continuar" },
+  { id: "restart", label: "Reiniciar partida" },
+];
+const ACTION_IDS = ACTIONS.map(a => a.id);
+const DIRECTIONS = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+const DEVICES = ["keyboard", "gamepad"];
+const DEFAULT_BINDINGS = {
+  keyboard: {
+    left:    ["ArrowLeft", "KeyA"],
+    right:   ["ArrowRight", "KeyD"],
+    up:      ["ArrowUp", "KeyW"],
+    down:    ["ArrowDown", "KeyS"],
+    swap:    ["Space", "KeyZ"],
+    turbo:   ["KeyF", "KeyQ"],
+    pause:   ["Escape", "KeyP"],
+    restart: ["KeyR", null],
+  },
+  gamepad: {
+    left:    ["b14", "a0-"],   // direcional ← / analógico esquerdo
+    right:   ["b15", "a0+"],
+    up:      ["b12", "a1-"],
+    down:    ["b13", "a1+"],
+    swap:    ["b0", "b1"],     // A / × e B / ○
+    turbo:   ["b4", "b5"],     // LB / L1 e RB / R1
+    pause:   ["b9", null],     // Start / Options
+    restart: ["b8", null],     // Select / Share
+  },
+};
+const BINDINGS_KEY = "panelAttack.bindings";
+let bindings = loadBindings();
+
+function cloneBindings(b) {
+  return JSON.parse(JSON.stringify(b));
+}
+
+function loadBindings() {
+  const result = cloneBindings(DEFAULT_BINDINGS);
+  try {
+    const saved = JSON.parse(localStorage.getItem(BINDINGS_KEY) || "null");
+    if (saved) {
+      for (const device of DEVICES) {
+        for (const action of ACTION_IDS) {
+          const slots = saved[device]?.[action];
+          const valid = Array.isArray(slots) && slots.length === 2
+            && slots.every(c => c === null || typeof c === "string");
+          if (valid) result[device][action] = slots;
+        }
+      }
+    }
+  } catch { /* usa o padrão */ }
+  return result;
+}
+
+function saveBindings() {
+  try { localStorage.setItem(BINDINGS_KEY, JSON.stringify(bindings)); } catch { /* sem armazenamento */ }
+}
+
+/** Ações ligadas a um código (tecla ou botão) num dispositivo. */
+function actionsFor(device, code) {
+  return ACTION_IDS.filter(a => bindings[device][a].includes(code));
+}
+
+const actionLabel = (id) => ACTIONS.find(a => a.id === id).label;
+
+// ---------- Nomes legíveis para teclas e botões ----------
+const KEY_NAMES = {
+  ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓",
+  Space: "Espaço", Escape: "Esc", Enter: "Enter", Tab: "Tab", Backspace: "Backspace",
+  ShiftLeft: "Shift esq.", ShiftRight: "Shift dir.", ControlLeft: "Ctrl esq.", ControlRight: "Ctrl dir.",
+  AltLeft: "Alt esq.", AltRight: "Alt dir.", MetaLeft: "Meta esq.", MetaRight: "Meta dir.",
+  CapsLock: "Caps Lock", Comma: ",", Period: ".", Slash: "/", Semicolon: ";", Quote: "'",
+  BracketLeft: "[", BracketRight: "]", Backslash: "\\", Minus: "-", Equal: "=", Backquote: "`",
+};
+function keyLabel(code) {
+  if (!code) return "—";
+  if (KEY_NAMES[code]) return KEY_NAMES[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (code.startsWith("Numpad")) return "Num " + code.slice(6);
+  return code;
+}
+
+const PAD_BUTTON_NAMES = [
+  "A / ×", "B / ○", "X / □", "Y / △", "LB / L1", "RB / R1", "LT / L2", "RT / R2",
+  "Select / Share", "Start / Options", "L3", "R3",
+  "Direcional ↑", "Direcional ↓", "Direcional ←", "Direcional →", "Home / PS",
+];
+const PAD_AXIS_NAMES = {
+  "a0-": "Analógico esq. ←", "a0+": "Analógico esq. →", "a1-": "Analógico esq. ↑", "a1+": "Analógico esq. ↓",
+  "a2-": "Analógico dir. ←", "a2+": "Analógico dir. →", "a3-": "Analógico dir. ↑", "a3+": "Analógico dir. ↓",
+};
+function padLabel(code) {
+  if (!code) return "—";
+  if (code[0] === "b") {
+    const i = Number(code.slice(1));
+    return PAD_BUTTON_NAMES[i] || `Botão ${i}`;
+  }
+  return PAD_AXIS_NAMES[code] || `Eixo ${code.slice(1, -1)} ${code.endsWith("-") ? "−" : "+"}`;
+}
+const codeLabel = (device, code) => (device === "keyboard" ? keyLabel(code) : padLabel(code));
 
 /* =========================================================
    STATE
@@ -796,23 +1074,38 @@ function isInDanger() {
    SCREENS / MENU
    Três telas: menu principal, opções e jogo.
    ========================================================= */
-const Screen = { MENU: "menu", OPTIONS: "options", GAME: "game" };
+const Screen = { MENU: "menu", OPTIONS: "options", CONTROLS: "controls", GAME: "game" };
 let currentScreen = Screen.MENU;
+let optionsReturn = Screen.MENU; // para onde "Voltar" leva a partir das Opções
 
 const $ = (id) => document.getElementById(id);
 const screens = {
   [Screen.MENU]: $("menuScreen"),
   [Screen.OPTIONS]: $("optionsScreen"),
+  [Screen.CONTROLS]: $("controlsScreen"),
   [Screen.GAME]: $("gameScreen"),
 };
 
 function showScreen(name) {
+  if (capture) cancelCapture(false);
   currentScreen = name;
   for (const [key, el] of Object.entries(screens)) el.hidden = key !== name;
+  input.keysDown.clear();
+  input.padTurbo = false;
   input.turbo = false;
   if (name === Screen.MENU) $("btnEndless").focus();
-  if (name === Screen.OPTIONS) $("btnOptionsBack").focus();
-  if (name === Screen.GAME) canvas.focus();
+  if (name === Screen.OPTIONS) $("optMusicOn").focus();
+  if (name === Screen.CONTROLS) {
+    setBindStatus(BIND_STATUS_IDLE);
+    renderBindings();
+    refreshPadStatus();
+    screens[Screen.CONTROLS].querySelector(".bind-slot").focus();
+  }
+  if (name === Screen.GAME) {
+    renderHelp();
+    canvas.focus();
+    if (state && state.paused) focusOverlayForPad(ui.pauseOverlay);
+  }
 }
 
 function startEndless() {
@@ -821,7 +1114,23 @@ function startEndless() {
 }
 
 function goToMenu() {
+  optionsReturn = Screen.MENU;
   showScreen(Screen.MENU);
+}
+
+function openOptions(from) {
+  optionsReturn = from;
+  showScreen(Screen.OPTIONS);
+}
+
+function closeOptions() {
+  showScreen(optionsReturn);
+}
+
+/** Botão "voltar" (Esc nos menus / B no controle). */
+function goBack() {
+  if (currentScreen === Screen.CONTROLS) showScreen(Screen.OPTIONS);
+  else if (currentScreen === Screen.OPTIONS) closeOptions();
 }
 
 /** Liga um grupo de botões segmentados a uma chave de `settings`. */
@@ -836,12 +1145,48 @@ function bindSegmented(groupId, key) {
   sync();
 }
 
+/** Botão liga/desliga ligado a uma chave booleana de `settings`. */
+function bindToggle(id, key, onText, offText) {
+  const b = $(id);
+  const sync = () => {
+    b.setAttribute("aria-pressed", String(settings[key]));
+    b.textContent = settings[key] ? onText : offText;
+  };
+  b.addEventListener("click", () => {
+    settings[key] = !settings[key];
+    saveSettings();
+    sync();
+  });
+  sync();
+}
+
+/** Slider 0–100 ligado a uma chave de `settings`, com o valor em % ao lado. */
+function bindSlider(id, key) {
+  const el = $(id), out = $(id + "Out");
+  el.value = settings[key];
+  out.textContent = settings[key] + "%";
+  el.addEventListener("input", () => {
+    settings[key] = Number(el.value);
+    out.textContent = el.value + "%";
+  });
+  el.addEventListener("change", () => {
+    saveSettings();
+    if (key === "sfxVolume") Sound.play("uiClick"); // prévia do novo volume
+  });
+}
+
 $("btnEndless").addEventListener("click", startEndless);
-$("btnOptions").addEventListener("click", () => showScreen(Screen.OPTIONS));
-$("btnOptionsBack").addEventListener("click", () => showScreen(Screen.MENU));
+$("btnOptions").addEventListener("click", () => openOptions(Screen.MENU));
+$("btnOptionsBack").addEventListener("click", closeOptions);
+$("btnControls").addEventListener("click", () => showScreen(Screen.CONTROLS));
+$("btnControlsBack").addEventListener("click", () => showScreen(Screen.OPTIONS));
+$("btnBindReset").addEventListener("click", resetBindings);
 bindSegmented("optSpeed", "speed");
 bindSegmented("optAnim", "anim");
-bindSegmented("optVolume", "volume");
+bindToggle("optMusicOn", "musicOn", "Ligada", "Desligada");
+bindToggle("optSfxOn", "sfxOn", "Ligados", "Desligados");
+bindSlider("optMusicVolume", "musicVolume");
+bindSlider("optSfxVolume", "sfxVolume");
 
 // Botões dentro do jogo devolvem o foco ao tabuleiro (para o teclado continuar valendo)
 function gameButton(id, fn) {
@@ -855,102 +1200,162 @@ gameButton("restartBtn", () => restart());
 gameButton("menuBtn", goToMenu);
 gameButton("btnResume", () => togglePause());
 gameButton("btnPauseRestart", () => restart());
+gameButton("btnPauseOptions", () => openOptions(Screen.GAME));
 gameButton("btnPauseMenu", goToMenu);
 gameButton("btnPlayAgain", () => restart());
 gameButton("btnGameOverMenu", goToMenu);
 
+// ---------- Aviso rápido (toast) ----------
+let toastTimer = 0;
+function showToast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
 /* =========================================================
    INPUT
+   Teclado e controle funcionam ao mesmo tempo. Os dois são traduzidos
+   para as mesmas ações (ACTIONS) usando o mapeamento em `bindings`.
    ========================================================= */
-// Teclas de movimento/troca: repetem ao segurar e ficam bloqueadas no pause.
-const KEY_ACTIONS = {
-  ArrowLeft:  () => moveCursor(-1, 0),
-  ArrowRight: () => moveCursor(1, 0),
-  ArrowUp:    () => moveCursor(0, -1),
-  ArrowDown:  () => moveCursor(0, 1),
-  KeyA:       () => moveCursor(-1, 0),
-  KeyD:       () => moveCursor(1, 0),
-  KeyW:       () => moveCursor(0, -1),
-  KeyS:       () => moveCursor(0, 1),
-  Space:      () => trySwap(),
-  KeyZ:       () => trySwap(),
+const input = {
+  keysDown: new Set(), // teclas físicas seguradas agora (para o turbo)
+  padTurbo: false,     // turbo segurado no controle
+  turbo: false,        // turbo efetivo (teclado OU controle), atualizado a cada frame
+  lastDevice: "keyboard",
 };
 
-// Teclas de sistema durante a partida: funcionam mesmo pausado e ignoram a repetição.
-const SYSTEM_ACTIONS = {
-  Escape: () => togglePause(),
-  KeyP:   () => togglePause(),
-  KeyR:   () => restart(),
-  KeyM:   () => { if (state.paused) goToMenu(); },
-};
-
-// Teclas da tela de Game Over
-const GAME_OVER_ACTIONS = {
-  Enter:  () => restart(),
-  Space:  () => restart(),
-  KeyR:   () => restart(),
-  Escape: () => goToMenu(),
-  KeyM:   () => goToMenu(),
-};
-
-// Teclas "seguradas" (estado contínuo, não ação única)
-const TURBO_KEYS = new Set(["KeyF", "KeyQ"]);
-const input = { turbo: false };
+/** Executa uma ação de jogo (vinda do teclado ou do controle). */
+function runAction(action, repeat) {
+  if (action === "pause") { if (!repeat) togglePause(); return; }
+  if (action === "restart") { if (!repeat) restart(); return; }
+  if (state.paused) return;           // sem mover/trocar durante o pause
+  if (DIRECTIONS[action]) moveCursor(...DIRECTIONS[action]);
+  else if (action === "swap" && !repeat) trySwap();
+}
 
 document.addEventListener("keydown", (e) => {
+  input.lastDevice = "keyboard";
+  if (capture) { handleCaptureKey(e); return; }
+  input.keysDown.add(e.code);
   if (currentScreen === Screen.GAME) handleGameKey(e);
   else handleMenuKey(e);
 });
 
-document.addEventListener("keyup", (e) => {
-  if (TURBO_KEYS.has(e.code)) input.turbo = false;
-});
+document.addEventListener("keyup", (e) => input.keysDown.delete(e.code));
 
 function handleGameKey(e) {
-  if (TURBO_KEYS.has(e.code)) {
-    e.preventDefault();
-    input.turbo = true;
-    return;
-  }
+  const actions = actionsFor("keyboard", e.code);
+
+  // Game Over: Enter (ou a tecla de trocar/reiniciar) joga de novo; Esc/M (ou pausar) vai ao menu
   if (state.phase === Phase.GAME_OVER) {
-    const action = GAME_OVER_ACTIONS[e.code];
-    if (!action) return;
-    e.preventDefault();
-    if (!e.repeat) action();
+    let fn = null;
+    if (e.code === "Enter" || actions.includes("swap") || actions.includes("restart")) fn = restart;
+    else if (e.code === "Escape" || e.code === "KeyM" || actions.includes("pause")) fn = goToMenu;
+    if (fn) {
+      e.preventDefault();
+      if (!e.repeat) fn();
+    }
     return;
   }
-  const system = SYSTEM_ACTIONS[e.code];
-  if (system) {
-    e.preventDefault();
-    if (!e.repeat) system();
-    return;
+
+  // Pausado: atalhos fixos M (menu) e O (opções); setas percorrem os botões do pause
+  if (state.paused && !actions.includes("pause") && !actions.includes("restart")) {
+    const fixed = { KeyM: goToMenu, KeyO: () => openOptions(Screen.GAME) }[e.code];
+    if (fixed) {
+      e.preventDefault();
+      if (!e.repeat) fixed();
+      return;
+    }
+    const dir = menuDirection(e.code);
+    if (dir) {
+      e.preventDefault();
+      uiNavigate(dir);
+    }
+    return; // Enter/Espaço no botão focado usam o clique nativo
   }
-  const action = KEY_ACTIONS[e.code];
-  if (!action) return;
-  e.preventDefault();          // evita rolagem da página com setas/espaço
-  if (state.paused) return;    // sem mover/trocar durante o pause
-  action();
+
+  if (!actions.length) return;
+  e.preventDefault(); // evita rolagem da página com setas/espaço
+  for (const a of actions) {
+    if (a !== "turbo") runAction(a, e.repeat); // turbo é lido como "segurado" a cada frame
+  }
 }
 
-/** Menu e opções: setas/WS percorrem os botões; Enter/Espaço usam o clique nativo. */
+// ---------- Navegação nos menus (teclado e controle) ----------
+const MENU_ARROWS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+
+/** Setas sempre navegam; as teclas de movimento configuradas também. */
+function menuDirection(code) {
+  return MENU_ARROWS[code] || Object.keys(DIRECTIONS).find(a => bindings.keyboard[a].includes(code)) || null;
+}
+
 function handleMenuKey(e) {
-  const root = screens[currentScreen];
-  const buttons = [...root.querySelectorAll("button:not(:disabled)")];
-  const dir = { ArrowDown: 1, KeyS: 1, ArrowUp: -1, KeyW: -1 }[e.code];
+  const dir = menuDirection(e.code);
   if (dir) {
     e.preventDefault();
-    const i = buttons.indexOf(document.activeElement);
-    const next = i === -1 ? buttons[0] : buttons[(i + dir + buttons.length) % buttons.length];
-    next.focus();
-    Sound.play("cursor");
-  } else if (e.code === "Escape" && currentScreen === Screen.OPTIONS) {
+    uiNavigate(dir);
+  } else if (e.code === "Escape") {
     e.preventDefault();
-    showScreen(Screen.MENU);
+    goBack();
   }
+  // Enter/Espaço no item focado usam o clique nativo
 }
 
-// Se a janela perde o foco, o keyup do turbo pode nunca chegar: solta o turbo.
-window.addEventListener("blur", () => { input.turbo = false; });
+/** Onde procurar itens navegáveis agora (tela atual ou janela de pause/game over). */
+function uiRoot() {
+  if (currentScreen !== Screen.GAME) return screens[currentScreen];
+  if (!ui.gameOverOverlay.hidden) return ui.gameOverOverlay;
+  if (!ui.pauseOverlay.hidden) return ui.pauseOverlay;
+  return null;
+}
+
+function uiFocusables(root) {
+  return [...root.querySelectorAll('button:not(:disabled), input[type="range"]')]
+    .filter(el => el.offsetParent !== null);
+}
+
+/** Move o foco (↑/← volta, ↓/→ avança); em sliders, ←/→ ajustam o valor. */
+function uiNavigate(dir) {
+  const root = uiRoot();
+  if (!root) return;
+  const items = uiFocusables(root);
+  if (!items.length) return;
+  const active = document.activeElement;
+  if (active && active.type === "range" && root.contains(active) && (dir === "left" || dir === "right")) {
+    active.value = Number(active.value) + (dir === "right" ? 1 : -1) * Number(active.step || 1);
+    active.dispatchEvent(new Event("input", { bubbles: true }));
+    active.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
+  const i = items.indexOf(active);
+  const step = dir === "down" || dir === "right" ? 1 : -1;
+  const next = i === -1 ? items[0] : items[(i + step + items.length) % items.length];
+  next.focus();
+  Sound.play("cursor");
+}
+
+/** Confirmar (A no controle): clica no item focado, ou foca o primeiro. */
+function uiConfirm() {
+  const root = uiRoot();
+  if (!root) return;
+  const active = document.activeElement;
+  if (active && root.contains(active) && active.tagName === "BUTTON") active.click();
+  else uiFocusables(root)[0]?.focus();
+}
+
+/** Quando o pause/game over aparece por ação do controle, já foca o primeiro botão. */
+function focusOverlayForPad(root) {
+  if (input.lastDevice === "gamepad") uiFocusables(root)[0]?.focus();
+}
+
+// Se a janela perde o foco, os keyup podem nunca chegar: solta tudo.
+window.addEventListener("blur", () => {
+  input.keysDown.clear();
+  input.padTurbo = false;
+});
 
 // Trocar de aba pausa o jogo automaticamente.
 document.addEventListener("visibilitychange", () => {
@@ -958,6 +1363,289 @@ document.addEventListener("visibilitychange", () => {
     state.paused = true;
   }
 });
+
+/* =========================================================
+   GAMEPAD
+   Lido a cada frame (Gamepad API). Botões fixos de interface:
+   A confirma, B volta, Start confirma nos menus. Direções repetem
+   sozinhas enquanto seguradas, como o teclado.
+   ========================================================= */
+const PAD_AXIS_THRESHOLD = 0.5;
+const PAD_REPEAT_DELAY_MS = 220;
+const PAD_REPEAT_RATE_MS = 75;
+const PAD_CONFIRM = "b0";
+const PAD_BACK = "b1";
+const PAD_START = "b9";
+const pad = { prev: new Set(), repeatAt: {} };
+
+function connectedPads() {
+  try {
+    return [...(navigator.getGamepads ? navigator.getGamepads() : [])].filter(Boolean);
+  } catch {
+    return []; // a página pode não ter permissão para usar controles
+  }
+}
+
+/** Códigos ativos agora em todos os controles: "b0", "a1-" etc. */
+function readPadCodes() {
+  const codes = new Set();
+  for (const gp of connectedPads()) {
+    gp.buttons.forEach((b, i) => { if (b.pressed || b.value > 0.5) codes.add("b" + i); });
+    gp.axes.forEach((v, i) => {
+      if (v <= -PAD_AXIS_THRESHOLD) codes.add(`a${i}-`);
+      else if (v >= PAD_AXIS_THRESHOLD) codes.add(`a${i}+`);
+    });
+  }
+  return codes;
+}
+
+function pollGamepad(now) {
+  const codes = readPadCodes();
+  const prev = pad.prev;
+  pad.prev = codes;
+  const fresh = new Set([...codes].filter(c => !prev.has(c))); // apertados neste frame
+  if (fresh.size) input.lastDevice = "gamepad";
+
+  // Remapeamento esperando um botão
+  if (capture) {
+    if (capture.device === "gamepad" && fresh.size) finishCapture([...fresh][0]);
+    else if (capture.device === "keyboard" && fresh.has(PAD_BACK)) cancelCapture();
+    return;
+  }
+
+  // Ações seguradas e recém-apertadas, conforme o mapeamento
+  const held = new Set(), pressed = new Set();
+  for (const a of ACTION_IDS) {
+    for (const c of bindings.gamepad[a]) {
+      if (c && codes.has(c)) {
+        held.add(a);
+        if (!prev.has(c)) pressed.add(a);
+      }
+    }
+  }
+  input.padTurbo = held.has("turbo");
+
+  // Repetição automática das direções
+  const fire = new Set([...pressed].filter(a => !DIRECTIONS[a] && a !== "turbo"));
+  for (const a of Object.keys(DIRECTIONS)) {
+    if (pressed.has(a)) {
+      fire.add(a);
+      pad.repeatAt[a] = now + PAD_REPEAT_DELAY_MS;
+    } else if (held.has(a)) {
+      if (now >= pad.repeatAt[a]) {
+        fire.add(a);
+        pad.repeatAt[a] = now + PAD_REPEAT_RATE_MS;
+      }
+    } else {
+      delete pad.repeatAt[a];
+    }
+  }
+  if (!fire.size && !fresh.size) return;
+
+  // Jogando
+  if (currentScreen === Screen.GAME && state && state.phase !== Phase.GAME_OVER && !state.paused) {
+    for (const a of fire) runAction(a, false);
+    return;
+  }
+
+  // Menus e janelas de pause / game over
+  for (const a of fire) if (DIRECTIONS[a]) uiNavigate(a);
+  if (currentScreen === Screen.GAME && state) {
+    if (state.phase === Phase.GAME_OVER) {
+      if (fresh.has(PAD_BACK)) goToMenu();
+      else if (fresh.has(PAD_START)) restart();
+      else if (fresh.has(PAD_CONFIRM)) uiConfirm();
+    } else if (fire.has("pause") || fresh.has(PAD_BACK)) {
+      togglePause();
+    } else if (fire.has("restart")) {
+      restart();
+    } else if (fresh.has(PAD_CONFIRM)) {
+      uiConfirm();
+    }
+    return;
+  }
+  if (fresh.has(PAD_BACK)) goBack();
+  else if (fresh.has(PAD_CONFIRM) || fresh.has(PAD_START)) uiConfirm();
+}
+
+function shortPadName(id) {
+  return id.replace(/\s*\(.*?\)\s*/g, " ").trim() || "Controle";
+}
+
+function refreshPadStatus() {
+  const pads = connectedPads();
+  $("padStatus").textContent = pads.length
+    ? `Controle conectado: ${shortPadName(pads[0].id)}`
+    : "Nenhum controle detectado. Conecte um e aperte qualquer botão dele.";
+  $("menuHint").textContent = "↑ ↓ para escolher · Enter para confirmar"
+    + (pads.length ? " · Controle: A confirma, B volta" : "");
+  renderHelp();
+}
+
+window.addEventListener("gamepadconnected", (e) => {
+  showToast(`Controle conectado: ${shortPadName(e.gamepad.id)}`);
+  refreshPadStatus();
+});
+window.addEventListener("gamepaddisconnected", () => {
+  showToast("Controle desconectado");
+  refreshPadStatus();
+});
+
+/* =========================================================
+   CONTROLS SCREEN (remapeamento)
+   Clique (ou A) num campo e aperte a nova tecla/botão. Uma tecla só
+   pode ter uma função: se já estava em outra ação, sai de lá.
+   ========================================================= */
+const CAPTURE_TIMEOUT_MS = 8000;
+const BIND_STATUS_IDLE = "Escolha um campo para trocar a tecla ou o botão. Cada ação aceita dois de cada.";
+let capture = null; // { device, action, slot, timer } enquanto espera a nova tecla/botão
+
+function setBindStatus(text, active = false) {
+  const el = $("bindStatus");
+  el.textContent = text;
+  el.classList.toggle("active", active);
+}
+
+function renderBindings() {
+  const tbody = $("bindRows");
+  tbody.innerHTML = "";
+  for (const { id, label } of ACTIONS) {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    th.scope = "row";
+    th.textContent = label;
+    tr.appendChild(th);
+    for (const device of DEVICES) {
+      for (const slot of [0, 1]) {
+        const code = bindings[device][id][slot];
+        const listening = !!capture && capture.device === device && capture.action === id && capture.slot === slot;
+        const b = document.createElement("button");
+        b.className = "bind-slot";
+        b.dataset.device = device;
+        b.dataset.action = id;
+        b.dataset.slot = slot;
+        b.textContent = listening ? "Aguardando…" : codeLabel(device, code);
+        b.classList.toggle("listening", listening);
+        b.classList.toggle("empty", !code);
+        b.setAttribute("aria-label",
+          `${label}, ${device === "keyboard" ? "teclado" : "controle"} ${slot + 1}: ${codeLabel(device, code)}`);
+        b.addEventListener("click", () => startCapture(device, id, slot));
+        const td = document.createElement("td");
+        td.appendChild(b);
+        tr.appendChild(td);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+function focusSlot(device, action, slot) {
+  $("bindRows").querySelector(
+    `.bind-slot[data-device="${device}"][data-action="${action}"][data-slot="${slot}"]`)?.focus();
+}
+
+function startCapture(device, action, slot) {
+  const same = !!capture && capture.device === device && capture.action === action && capture.slot === slot;
+  cancelCapture(false);
+  if (same) {
+    setBindStatus(BIND_STATUS_IDLE);
+    return; // clicar de novo no mesmo campo cancela
+  }
+  capture = { device, action, slot, timer: setTimeout(() => cancelCapture(), CAPTURE_TIMEOUT_MS) };
+  const where = device === "keyboard" ? "teclado" : "controle";
+  const how = device === "keyboard"
+    ? "Pressione a nova tecla (Delete apaga o campo)."
+    : "Aperte o novo botão ou mova o analógico (Esc no teclado cancela).";
+  setBindStatus(`Configurando “${actionLabel(action)}” no ${where}, campo ${slot + 1}. ${how}`, true);
+  renderBindings();
+  focusSlot(device, action, slot);
+}
+
+function cancelCapture(announce = true) {
+  if (!capture) return;
+  const { device, action, slot, timer } = capture;
+  clearTimeout(timer);
+  capture = null;
+  renderBindings();
+  focusSlot(device, action, slot);
+  if (announce) setBindStatus("Alteração cancelada. " + BIND_STATUS_IDLE);
+}
+
+/** Grava a nova tecla/botão (`code` null apaga o campo). */
+function finishCapture(code) {
+  const { device, action, slot, timer } = capture;
+  clearTimeout(timer);
+  capture = null;
+  let movedFrom = null;
+  if (code) {
+    for (const a of ACTION_IDS) {
+      bindings[device][a] = bindings[device][a].map((c, i) => {
+        if (c !== code || (a === action && i === slot)) return c;
+        if (a !== action) movedFrom = a;
+        return null;
+      });
+    }
+  }
+  bindings[device][action][slot] = code;
+  saveBindings();
+  renderBindings();
+  renderHelp();
+  focusSlot(device, action, slot);
+  const name = actionLabel(action);
+  setBindStatus(code
+    ? `“${name}” agora usa ${codeLabel(device, code)}.` + (movedFrom ? ` (Removido de “${actionLabel(movedFrom)}”.)` : "")
+    : `“${name}”: campo ${slot + 1} apagado.`);
+  Sound.play("uiClick");
+}
+
+function handleCaptureKey(e) {
+  e.preventDefault();
+  if (capture.device === "gamepad") {
+    if (e.code === "Escape") cancelCapture();
+    return;
+  }
+  if (e.repeat) return;
+  finishCapture(e.code === "Delete" || e.code === "Backspace" ? null : e.code);
+}
+
+function resetBindings() {
+  cancelCapture(false);
+  bindings = cloneBindings(DEFAULT_BINDINGS);
+  saveBindings();
+  renderBindings();
+  renderHelp();
+  setBindStatus("Controles restaurados para o padrão.");
+}
+
+/** Ajuda do painel lateral e atalhos do pause, sempre conforme o mapeamento atual. */
+function renderHelp() {
+  const esc = (t) => t.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const kbds = (labels) => labels.length ? labels.map(l => `<kbd>${esc(l)}</kbd>`).join(" ") : '<span class="muted">—</span>';
+  const keys = (action) => bindings.keyboard[action].filter(Boolean).map(keyLabel);
+  const moveSets = [0, 1]
+    .map(i => ["left", "up", "down", "right"].map(a => bindings.keyboard[a][i]).filter(Boolean).map(keyLabel))
+    .filter(set => set.length);
+  const lines = [
+    `${moveSets.map(kbds).join(" ou ") || kbds([])} mover cursor`,
+    `${kbds(keys("swap"))} trocar blocos`,
+    `${kbds(keys("turbo"))} (segurar) subir a pilha rápido`,
+    `${kbds(keys("pause"))} pausar`,
+    `${kbds(keys("restart"))} reiniciar`,
+  ];
+  if (connectedPads().length) {
+    const g = (a) => esc(padLabel(bindings.gamepad[a].find(Boolean) || null));
+    lines.push(`<span class="muted">Controle: ${g("swap")} troca · ${g("turbo")} turbo · ${g("pause")} pausa</span>`);
+  }
+  $("helpText").innerHTML = lines.join("<br>")
+    + "<br><br>A pilha sobe sozinha e acelera com o tempo. Se um bloco passar do topo, é Game Over.";
+  const setKey = (id, code) => {
+    const el = $(id);
+    el.textContent = keyLabel(code);
+    el.hidden = !code;
+  };
+  setKey("resumeKey", bindings.keyboard.pause.find(Boolean) || null);
+  setKey("pauseRestartKey", bindings.keyboard.restart.find(Boolean) || null);
+}
 
 function togglePause() {
   if (state.phase === Phase.GAME_OVER) return;
@@ -1866,13 +2554,21 @@ function syncHud() {
   ui.chainMsg.textContent = state.message;
 
   const over = state.phase === Phase.GAME_OVER;
-  ui.pauseOverlay.hidden = !(state.paused && !over);
+  const showPause = state.paused && !over;
+  if (ui.pauseOverlay.hidden === showPause) {
+    ui.pauseOverlay.hidden = !showPause;
+    if (showPause) focusOverlayForPad(ui.pauseOverlay);
+    else if (ui.pauseOverlay.contains(document.activeElement)) canvas.focus();
+  }
   if (ui.gameOverOverlay.hidden === over) {
     ui.gameOverOverlay.hidden = !over;
     if (over) {
       ui.goScore.textContent = state.score;
       ui.goTime.textContent = formatTime(state.elapsedMs);
       ui.goChain.textContent = state.bestChain;
+      focusOverlayForPad(ui.gameOverOverlay);
+    } else if (ui.gameOverOverlay.contains(document.activeElement)) {
+      canvas.focus();
     }
   }
 }
@@ -1969,14 +2665,26 @@ function loop(time) {
   // Limita dt para a pilha não "pular" várias linhas ao voltar de outra aba
   const dt = lastTime ? Math.min(time - lastTime, 100) : 0;
   lastTime = time;
+
+  pollGamepad(time);
+  const keyboardTurbo = bindings.keyboard.turbo.some(c => c && input.keysDown.has(c));
+  input.turbo = currentScreen === Screen.GAME && (keyboardTurbo || input.padTurbo);
+
   if (currentScreen === Screen.GAME && state) {
     update(dt);
     render();
   }
+
   // Aviso de perigo em loop enquanto a pilha está perto do topo
-  const danger = currentScreen === Screen.GAME && !!state && !state.paused
-    && state.phase !== Phase.GAME_OVER && isInDanger();
+  const inGame = currentScreen === Screen.GAME && !!state;
+  const danger = inGame && !state.paused && state.phase !== Phase.GAME_OVER && isInDanger();
   Sound.setLoop("warning", danger);
+
+  // Música: some no Game Over, abaixa no pause e nos menus
+  const over = inGame && state.phase === Phase.GAME_OVER;
+  const level = inGame ? (state.paused ? MUSIC_DUCK : 1) : MUSIC_MENU_LEVEL;
+  Sound.setMusic(!over, level);
+
   requestAnimationFrame(loop);
 }
 
@@ -1985,9 +2693,12 @@ function loop(time) {
    ========================================================= */
 function restart() {
   state = createInitialState();
+  Sound.stopMusic(); // a música recomeça do início
 }
 
 renderMenuTiles();
+renderHelp();
+refreshPadStatus();
 showScreen(Screen.MENU);
 requestAnimationFrame(loop);
 </script>

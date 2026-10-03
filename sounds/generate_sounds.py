@@ -8,7 +8,8 @@ qualquer parâmetro aqui e gerar de novo:
     pip install numpy scipy
     python3 sounds/generate_sounds.py
 
-Saída: arquivos WAV mono, 44.1 kHz, 16 bits, na mesma pasta deste script.
+Saída: arquivos WAV mono, 16 bits, na mesma pasta deste script
+(efeitos em 44.1 kHz; a música em 22 kHz para ficar menor).
 """
 
 import os
@@ -397,6 +398,118 @@ def make_pause():
     save("unpause.wav", room(lowpass(up, 6000), 0.15, 0.7), 0.55)
 
 
+# =========================================================
+# 11. Música do modo Endless (loop sem emenda)
+# =========================================================
+
+MUSIC_BPM = 132
+MUSIC_SR = 22050  # a música é gravada em 22 kHz para o arquivo ficar menor
+
+# Um acorde por compasso (16 compassos)
+MUSIC_CHORDS = ["C", "Am", "F", "G", "C", "Am", "F", "G",
+                "F", "G", "Em", "Am", "F", "G", "C", "G"]
+CHORD_NOTES = {
+    "C": ["C", "E", "G"], "Am": ["A", "C", "E"], "F": ["F", "A", "C"],
+    "G": ["G", "B", "D"], "Em": ["E", "G", "B"],
+}
+# Melodia: (compasso, tempo dentro do compasso, duração em tempos, nota)
+MUSIC_MELODY = [
+    (0, 0, 1, "E5"), (0, 1, .5, "G5"), (0, 1.5, .5, "A5"), (0, 2, 1, "G5"), (0, 3, 1, "E5"),
+    (1, 0, 1, "C5"), (1, 1, .5, "E5"), (1, 1.5, .5, "D5"), (1, 2, 1.5, "C5"), (1, 3.5, .5, "A4"),
+    (2, 0, 1, "C5"), (2, 1, 1, "F5"), (2, 2, 1, "A5"), (2, 3, 1, "G5"),
+    (3, 0, 1.5, "D5"), (3, 1.5, .5, "B4"), (3, 2, 1, "D5"), (3, 3, 1, "G5"),
+    (4, 0, 1, "E5"), (4, 1, .5, "G5"), (4, 1.5, .5, "A5"), (4, 2, 1, "C6"), (4, 3, .5, "B5"), (4, 3.5, .5, "A5"),
+    (5, 0, 1, "G5"), (5, 1, 1, "E5"), (5, 2, 1, "C5"), (5, 3, 1, "E5"),
+    (6, 0, .5, "F5"), (6, .5, .5, "E5"), (6, 1, 1, "D5"), (6, 2, 1, "C5"), (6, 3, 1, "A4"),
+    (7, 0, 1, "B4"), (7, 1, 1, "D5"), (7, 2, 2, "G5"),
+    (8, 0, 1.5, "A5"), (8, 1.5, .5, "G5"), (8, 2, 1, "F5"), (8, 3, 1, "A5"),
+    (9, 0, 1.5, "B5"), (9, 1.5, .5, "A5"), (9, 2, 2, "G5"),
+    (10, 0, 1, "G5"), (10, 1, 1, "E5"), (10, 2, 1, "B4"), (10, 3, 1, "E5"),
+    (11, 0, 1, "A5"), (11, 1, 1, "C6"), (11, 2, .5, "B5"), (11, 2.5, .5, "A5"), (11, 3, 1, "E5"),
+    (12, 0, 1, "F5"), (12, 1, 1, "A5"), (12, 2, 1.5, "C6"), (12, 3.5, .5, "A5"),
+    (13, 0, 1, "G5"), (13, 1, 1, "B5"), (13, 2, 2, "D6"),
+    (14, 0, 1.5, "E6"), (14, 1.5, .5, "D6"), (14, 2, 1, "C6"), (14, 3, 1, "G5"),
+    (15, 0, 1, "D5"), (15, 1, 1, "G5"), (15, 2, 1, "B5"), (15, 3, 1, "D6"),
+]
+
+
+def adsr(n, attack, decay, sustain, release):
+    """Envelope ADSR com nota de `n` amostras (o release vem depois de n)."""
+    a, d, r = int(SR * attack), int(SR * decay), int(SR * release)
+    env = np.concatenate([
+        np.linspace(0, 1, max(a, 1)),
+        np.linspace(1, sustain, max(d, 1)),
+        np.full(max(n - a - d, 0), sustain),
+    ])[:n]
+    tail = np.linspace(env[-1] if len(env) else 0, 0, max(r, 1))
+    return np.concatenate([env, tail])
+
+
+def music_voice(freq, beats, beat_s, shape, a, d, s_lvl, r, vibrato=0.0):
+    n = int(SR * beats * beat_s)
+    env = adsr(n, a, d, s_lvl, r)
+    dur = len(env) / SR
+    t = t_axis(dur)
+    f = freq * (1 + vibrato * np.sin(2 * np.pi * 5.5 * t) * np.clip(t / 0.15, 0, 1))
+    return osc(f, dur, shape)[: len(env)] * env
+
+
+def make_music():
+    beat = 60 / MUSIC_BPM
+    bar = 4 * beat
+    total = len(MUSIC_CHORDS) * bar
+    out = silence(total + 2.0)  # sobra para as caudas; depois elas voltam para o início
+
+    for i, chord in enumerate(MUSIC_CHORDS):
+        t0 = i * bar
+        tones = CHORD_NOTES[chord]
+        # Baixo: tônica em colcheias, alternando oitavas
+        for k in range(8):
+            octave = 2 if k % 2 == 0 else 3
+            v = music_voice(note(tones[0] + str(octave)), 0.45, beat, "triangle", .005, .08, .5, .04)
+            out = place(out, 0.5 * lowpass(v, 900), t0 + k * beat / 2)
+        # Arpejo em semicolcheias
+        arp = [tones[0] + "4", tones[1] + "4", tones[2] + "4", tones[0] + "5"]
+        for k in range(16):
+            n_ = arp[[0, 1, 2, 3, 2, 1, 2, 3][k % 8]]
+            v = music_voice(note(n_), 0.22, beat, "square", .003, .05, .25, .03)
+            out = place(out, 0.11 * lowpass(v, 2800), t0 + k * beat / 4)
+        # Bateria: bumbo nos tempos 1 e 3, caixa no 2 e 4, chimbal em colcheias
+        for k in range(4):
+            if k in (0, 2):
+                d_ = 0.18
+                kick = osc(sweep(130, 45, d_), d_) * env_ad(int(SR * d_), .002, .06)
+                out = place(out, 0.55 * kick, t0 + k * beat)
+            else:
+                d_ = 0.16
+                snare = (0.8 * bandpass(noise(d_), 1200, 7000) + 0.4 * osc(190, d_)) * env_ad(int(SR * d_), .001, .045)
+                out = place(out, 0.28 * snare, t0 + k * beat)
+        for k in range(8):
+            d_ = 0.05
+            hat = highpass(noise(d_), 7000) * env_ad(int(SR * d_), .001, .012)
+            out = place(out, (0.09 if k % 2 else 0.06) * hat, t0 + k * beat / 2)
+
+    for b, start, length, n_ in MUSIC_MELODY:
+        v = music_voice(note(n_), length * 0.92, beat, "square", .006, .12, .55, .08, vibrato=.004)
+        out = place(out, 0.26 * lowpass(v, 3800), b * bar + start * beat)
+
+    out = room(out, 0.15, 1.0)
+    # Loop sem emenda: o que passou do fim (caudas) é somado ao começo
+    n_loop = int(SR * total)
+    loop = out[:n_loop].copy()
+    tail = out[n_loop:]
+    loop[: len(tail)] += tail[: n_loop]
+
+    from scipy.signal import resample_poly
+    loop = resample_poly(loop, MUSIC_SR, SR)
+    loop = loop / (np.max(np.abs(loop)) + 1e-9) * 0.8
+    data = (np.clip(loop, -1, 1) * 32767).astype(np.int16)
+    with wave.open(os.path.join(OUT_DIR, "music_endless.wav"), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(MUSIC_SR)
+        w.writeframes(data.tobytes())
+    print(f"  {'music_endless.wav':<24} {total * 1000:6.0f} ms (loop, {MUSIC_SR} Hz)")
+
+
 if __name__ == "__main__":
     print("Gerando efeitos em", OUT_DIR)
     make_swap()
@@ -409,3 +522,4 @@ if __name__ == "__main__":
     make_cursor()
     make_ui_click()
     make_pause()
+    make_music()
