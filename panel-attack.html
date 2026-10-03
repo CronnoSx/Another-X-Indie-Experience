@@ -252,11 +252,21 @@
           <button id="optAnimFast" data-value="fast">Rápida</button>
         </div>
       </div>
+      <div class="opt-row">
+        <div class="opt-label" id="lblVolume">Volume dos efeitos</div>
+        <div class="seg" role="group" aria-labelledby="lblVolume" id="optVolume">
+          <button id="optVolumeOff" data-value="off">Mudo</button>
+          <button id="optVolumeLow" data-value="low">Baixo</button>
+          <button id="optVolumeMid" data-value="mid">Médio</button>
+          <button id="optVolumeHigh" data-value="high">Alto</button>
+        </div>
+      </div>
       <div class="credits">
         <strong>Créditos</strong><br>
         Protótipo inspirado em Tetris Attack / Panel de Pon.<br>
         Feito com HTML, CSS e JavaScript puro. Os blocos elementais são desenhados em canvas
-        a partir da referência “Elemental Puzzle Blocks”.
+        a partir da referência “Elemental Puzzle Blocks”. Efeitos sonoros sintetizados
+        por <code>sounds/generate_sounds.py</code>.
       </div>
       <div class="actions">
         <button class="menu-btn" id="btnOptionsBack">Voltar <kbd>Esc</kbd></button>
@@ -272,7 +282,7 @@
       <div class="overlay" id="pauseOverlay" hidden>
         <h2>PAUSADO</h2>
         <div class="actions">
-          <button class="menu-btn primary" id="btnResume">Continuar <kbd>Esc</kbd></button>
+          <button class="menu-btn primary" id="btnResume" data-no-click-sound>Continuar <kbd>Esc</kbd></button>
           <button class="menu-btn" id="btnPauseRestart">Reiniciar <kbd>R</kbd></button>
           <button class="menu-btn" id="btnPauseMenu">Voltar ao Menu <kbd>M</kbd></button>
         </div>
@@ -370,6 +380,13 @@ const ANIM_PRESETS = {
   normal: 1,
   fast:   0.6,
 };
+// Volume geral dos efeitos sonoros
+const VOLUME_PRESETS = {
+  off:  0,
+  low:  0.35,
+  mid:  0.65,
+  high: 1,
+};
 
 const EMPTY = 0;
 const BOARD_W = CONFIG.COLS * CONFIG.CELL;
@@ -406,12 +423,13 @@ const SETTINGS_KEY = "panelAttack.settings";
 const settings = loadSettings();
 
 function loadSettings() {
-  const defaults = { speed: "normal", anim: "normal" };
+  const defaults = { speed: "normal", anim: "normal", volume: "mid" };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
     return {
       speed: saved.speed in SPEED_PRESETS ? saved.speed : defaults.speed,
       anim: saved.anim in ANIM_PRESETS ? saved.anim : defaults.anim,
+      volume: saved.volume in VOLUME_PRESETS ? saved.volume : defaults.volume,
     };
   } catch {
     return defaults;
@@ -425,6 +443,163 @@ function saveSettings() {
 const animMult = () => ANIM_PRESETS[settings.anim];
 const swapMs = () => CONFIG.SWAP_MS * animMult();
 const clearMs = () => CONFIG.CLEAR_MS * animMult();
+
+/* =========================================================
+   AUDIO
+   Efeitos da pasta sounds/ (gerados por sounds/generate_sounds.py).
+   Usa Web Audio (baixa latência, vários sons ao mesmo tempo). Se os
+   arquivos não puderem ser lidos via fetch (ex.: HTML aberto direto do
+   disco, em file://), usa elementos <audio> como alternativa.
+   ========================================================= */
+const SOUND_DIR = "sounds/";
+// Evento → arquivo(s). Com mais de um arquivo, um é sorteado a cada vez.
+const SOUND_FILES = {
+  swap:      ["swap.wav"],
+  fall:      ["fall_single_a.wav", "fall_single_b.wav", "fall_single_c.wav"],
+  fallMulti: ["fall_multi.wav"],
+  clear3:    ["clear_3.wav"],
+  clear4:    ["clear_4.wav"],
+  clear5:    ["clear_5plus.wav"],
+  chain2:    ["chain_2.wav"],
+  chain3:    ["chain_3.wav"],
+  chain4:    ["chain_4.wav"],
+  chain5:    ["chain_5.wav"],
+  chain6:    ["chain_6.wav"],
+  chain7:    ["chain_7.wav"],
+  chain8:    ["chain_8.wav"],
+  rise:      ["rise.wav"],
+  warning:   ["warning_loop.wav"],
+  gameOver:  ["game_over.wav"],
+  cursor:    ["cursor_move.wav"],
+  uiClick:   ["ui_click.wav"],
+  pause:     ["pause.wav"],
+  unpause:   ["unpause.wav"],
+};
+const MAX_CHAIN_SOUND = 8;          // chains acima disso repetem o som da x8
+const FALL_MULTI_MIN_BLOCKS = 3;    // a partir de quantos blocos a queda usa o som "vários"
+const RISE_SOUND_MIN_GAP_MS = 400;  // evita metralhar o som de subida no turbo / modo frenético
+
+const Sound = {
+  ctx: null,
+  master: null,
+  buffers: {},     // arquivo → AudioBuffer (Web Audio)
+  elements: {},    // arquivo → HTMLAudioElement (alternativa)
+  started: false,
+  loop: null,      // som em loop tocando agora (aviso de perigo)
+  lastPlayed: {},
+
+  /** Navegadores só liberam áudio após um gesto do jogador (tecla ou clique). */
+  unlock() {
+    if (!this.started) {
+      this.started = true;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        this.ctx = new AC();
+        this.master = this.ctx.createGain();
+        this.master.connect(this.ctx.destination);
+      }
+      new Set(Object.values(SOUND_FILES).flat()).forEach(file => this.load(file));
+    }
+    if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+  },
+
+  async load(file) {
+    const url = SOUND_DIR + file;
+    try {
+      if (!this.ctx) throw new Error("sem Web Audio");
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.buffers[file] = await this.ctx.decodeAudioData(await res.arrayBuffer());
+    } catch {
+      const el = new Audio(url);
+      el.preload = "auto";
+      this.elements[file] = el;
+    }
+  },
+
+  volume() {
+    return VOLUME_PRESETS[settings.volume];
+  },
+
+  pick(name) {
+    const list = SOUND_FILES[name];
+    return list[Math.floor(Math.random() * list.length)];
+  },
+
+  /**
+   * Toca um efeito uma vez.
+   * volume: multiplicador sobre o volume geral; gap: intervalo mínimo (ms) desde a última vez.
+   */
+  play(name, { volume = 1, gap = 0 } = {}) {
+    const v = this.volume() * volume;
+    if (!this.started || v <= 0) return;
+    const now = performance.now();
+    if (gap && now - (this.lastPlayed[name] ?? -Infinity) < gap) return;
+    this.lastPlayed[name] = now;
+
+    const file = this.pick(name);
+    if (this.buffers[file]) {
+      const src = this.ctx.createBufferSource();
+      const gain = this.ctx.createGain();
+      src.buffer = this.buffers[file];
+      gain.gain.value = v;
+      src.connect(gain).connect(this.master);
+      src.start();
+    } else if (this.elements[file]) {
+      const el = this.elements[file].cloneNode();
+      el.volume = Math.min(1, v);
+      el.play().catch(() => {});
+    }
+  },
+
+  /** Mantém um som em loop ligado ou desligado (chamado a cada frame). */
+  setLoop(name, on) {
+    const v = this.volume();
+    if (!on || v <= 0 || !this.started) {
+      this.stopLoop();
+      return;
+    }
+    if (this.loop) {
+      this.loop.setVolume(v);
+      return;
+    }
+    const file = SOUND_FILES[name][0];
+    if (this.buffers[file]) {
+      const src = this.ctx.createBufferSource();
+      const gain = this.ctx.createGain();
+      src.buffer = this.buffers[file];
+      src.loop = true;
+      gain.gain.value = v;
+      src.connect(gain).connect(this.master);
+      src.start();
+      this.loop = { stop: () => src.stop(), setVolume: (x) => { gain.gain.value = x; } };
+    } else if (this.elements[file]) {
+      const el = this.elements[file].cloneNode();
+      el.loop = true;
+      el.volume = Math.min(1, v);
+      el.play().catch(() => {});
+      this.loop = { stop: () => el.pause(), setVolume: (x) => { el.volume = Math.min(1, x); } };
+    }
+  },
+
+  stopLoop() {
+    if (this.loop) {
+      this.loop.stop();
+      this.loop = null;
+    }
+  },
+};
+
+// O primeiro gesto do jogador libera o áudio e começa a carregar os arquivos
+for (const type of ["pointerdown", "keydown"]) {
+  document.addEventListener(type, () => Sound.unlock(), { capture: true });
+}
+
+// Clique em qualquer botão da interface
+document.addEventListener("click", (e) => {
+  const button = e.target.closest("button");
+  if (button && !button.disabled && !("noClickSound" in button.dataset)) Sound.play("uiClick");
+});
 
 /* =========================================================
    STATE
@@ -599,6 +774,7 @@ function pushRow() {
 
   // O cursor acompanha os blocos (sobe junto), limitado ao topo
   state.cursor.y = Math.max(0, state.cursor.y - 1);
+  Sound.play("rise", { volume: 0.7, gap: RISE_SOUND_MIN_GAP_MS });
 }
 
 function updateRise(dt) {
@@ -665,6 +841,7 @@ $("btnOptions").addEventListener("click", () => showScreen(Screen.OPTIONS));
 $("btnOptionsBack").addEventListener("click", () => showScreen(Screen.MENU));
 bindSegmented("optSpeed", "speed");
 bindSegmented("optAnim", "anim");
+bindSegmented("optVolume", "volume");
 
 // Botões dentro do jogo devolvem o foco ao tabuleiro (para o teclado continuar valendo)
 function gameButton(id, fn) {
@@ -765,6 +942,7 @@ function handleMenuKey(e) {
     const i = buttons.indexOf(document.activeElement);
     const next = i === -1 ? buttons[0] : buttons[(i + dir + buttons.length) % buttons.length];
     next.focus();
+    Sound.play("cursor");
   } else if (e.code === "Escape" && currentScreen === Screen.OPTIONS) {
     e.preventDefault();
     showScreen(Screen.MENU);
@@ -784,13 +962,16 @@ document.addEventListener("visibilitychange", () => {
 function togglePause() {
   if (state.phase === Phase.GAME_OVER) return;
   state.paused = !state.paused;
+  Sound.play(state.paused ? "pause" : "unpause");
 }
 
 function moveCursor(dx, dy) {
   const c = state.cursor;
+  const before = c.x + "," + c.y;
   // O cursor ocupa x e x+1, então x vai de 0 a COLS-2
   c.x = Math.max(0, Math.min(CONFIG.COLS - 2, c.x + dx));
   c.y = Math.max(0, Math.min(CONFIG.ROWS - 1, c.y + dy));
+  if (c.x + "," + c.y !== before) Sound.play("cursor");
 }
 
 /* =========================================================
@@ -814,6 +995,7 @@ function trySwap() {
   state.swap = { x, y };
   state.phase = Phase.SWAPPING;
   state.phaseTimer = swapMs();
+  Sound.play("swap");
 }
 
 function finishSwap() {
@@ -914,6 +1096,8 @@ function settleBoard() {
 }
 
 function finishFall() {
+  const landed = state.fall.dist.flat().filter(Boolean).length;
+  Sound.play(landed >= FALL_MULTI_MIN_BLOCKS ? "fallMulti" : "fall");
   state.fall = null;
   checkMatches();
 }
@@ -927,6 +1111,9 @@ function checkMatches() {
   }
   state.chain++;
   addScore(matches.length, state.chain);
+  const n = matches.length;
+  Sound.play(n >= 5 ? "clear5" : n === 4 ? "clear4" : "clear3");
+  if (state.chain >= 2) Sound.play("chain" + Math.min(state.chain, MAX_CHAIN_SOUND));
   state.clearing = matches;
   state.phase = Phase.CLEARING;
   state.phaseTimer = clearMs();
@@ -942,6 +1129,8 @@ function gameOver() {
   state.phase = Phase.GAME_OVER;
   state.clearing = [];
   state.banner = "";
+  Sound.stopLoop();
+  Sound.play("gameOver");
 }
 
 /* =========================================================
@@ -1784,6 +1973,10 @@ function loop(time) {
     update(dt);
     render();
   }
+  // Aviso de perigo em loop enquanto a pilha está perto do topo
+  const danger = currentScreen === Screen.GAME && !!state && !state.paused
+    && state.phase !== Phase.GAME_OVER && isInDanger();
+  Sound.setLoop("warning", danger);
   requestAnimationFrame(loop);
 }
 
