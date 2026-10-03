@@ -1378,34 +1378,61 @@ function iconFire(g, s) {
   emboss(g, s, flame(0.55, 0.36), inner, "#d45a00");
 }
 
-/** Terra: montinho de três torrões/pedrinhas em relevo. */
+/** Terra: uma única pedra de contorno irregular e anguloso, com facetas de luz e sombra. */
 function iconEarth(g, s) {
-  const cx = s / 2, cy = s * 0.53, R = s * 0.3;
-  const clod = (x, y, rx, ry, rot) => {
-    const px = cx + x * R, py = cy + y * R;
-    const path = () => {
-      g.beginPath();
-      g.ellipse(px, py, rx * R, ry * R, rot, 0, Math.PI * 2);
-    };
-    const fill = g.createRadialGradient(px - rx * R * 0.35, py - ry * R * 0.45, 0, px, py, rx * R * 1.1);
-    fill.addColorStop(0, "#ffe6b8");
-    fill.addColorStop(0.5, "#e9a157");
-    fill.addColorStop(1, "#a85a1c");
-    emboss(g, s, path, fill, "#552405");
+  const cx = s / 2, cy = s * 0.52, R = s * 0.33;
+  const P = ([x, y]) => [cx + x * R, cy + y * R];
+  // Contorno da pedra (unidades de R), sem simetria e com quinas
+  const OUTLINE = [
+    [-0.95, 0.32], [-0.82, -0.18], [-0.5, -0.5], [-0.12, -0.74], [0.38, -0.55],
+    [0.62, -0.62], [0.9, -0.22], [0.94, 0.2], [0.68, 0.58], [0.12, 0.66], [-0.48, 0.58],
+  ];
+  const PEAK = [0.08, -0.12]; // ponto onde as facetas se encontram
+  const shape = (pts) => () => {
+    g.beginPath();
+    pts.forEach((pt, i) => (i ? g.lineTo(...P(pt)) : g.moveTo(...P(pt))));
+    g.closePath();
   };
-  clod(-0.45, 0.32, 0.5, 0.38, -0.15);
-  clod(0.47, 0.34, 0.47, 0.36, 0.2);
-  clod(0, -0.24, 0.55, 0.44, 0);
-  // Rachadura no torrão de cima
+  const rock = shape(OUTLINE);
+
+  const fill = g.createRadialGradient(cx - R * 0.3, cy - R * 0.4, 0, cx, cy, R * 1.1);
+  fill.addColorStop(0, "#ffe6b8");
+  fill.addColorStop(0.5, "#e9a157");
+  fill.addColorStop(1, "#a85a1c");
+  emboss(g, s, rock, fill, "#552405");
+
+  // Facetas: face de cima iluminada, face de baixo/direita na sombra
+  g.save();
+  rock();
+  g.clip();
+  shape([OUTLINE[1], OUTLINE[2], OUTLINE[3], OUTLINE[4], OUTLINE[5], PEAK])();
+  g.fillStyle = "rgba(255,240,205,0.38)";
+  g.fill();
+  shape([OUTLINE[6], OUTLINE[7], OUTLINE[8], OUTLINE[9], PEAK])();
+  g.fillStyle = "rgba(95,35,5,0.30)";
+  g.fill();
+  // Arestas entre as facetas
   g.lineCap = "round";
   g.lineJoin = "round";
+  g.lineWidth = Math.max(1, s * 0.012);
+  g.strokeStyle = "rgba(95,40,8,0.55)";
+  for (const corner of [OUTLINE[1], OUTLINE[5], OUTLINE[6], OUTLINE[9]]) {
+    g.beginPath(); g.moveTo(...P(PEAK)); g.lineTo(...P(corner)); g.stroke();
+  }
+  // Rachadura
   g.lineWidth = Math.max(1, s * 0.014);
-  g.strokeStyle = "rgba(95,40,8,0.7)";
+  g.strokeStyle = "rgba(85,32,4,0.7)";
   g.beginPath();
-  g.moveTo(cx - R * 0.18, cy - R * 0.55);
-  g.lineTo(cx - R * 0.05, cy - R * 0.3);
-  g.lineTo(cx - R * 0.16, cy - R * 0.12);
-  g.lineTo(cx - R * 0.02, cy + R * 0.08);
+  g.moveTo(...P([-0.6, 0.12]));
+  g.lineTo(...P([-0.38, 0.22]));
+  g.lineTo(...P([-0.3, 0.42]));
+  g.stroke();
+  g.restore();
+
+  // Contorno limpo por cima das facetas
+  rock();
+  g.lineWidth = Math.max(1, s * 0.014);
+  g.strokeStyle = "#552405";
   g.stroke();
 }
 
