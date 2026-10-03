@@ -58,6 +58,7 @@
   .stat.wide .value { font-size: 32px; }
   #speed.fast { color: var(--accent); }
   #speed.frenzy { color: var(--danger); }
+  #speed.turbo { color: #7fd6ff; }
   #chainMsg { color: var(--accent); font-weight: 700; min-height: 22px; font-size: 18px; margin-top: 10px; }
   button {
     width: 100%;
@@ -93,8 +94,10 @@
     <div id="chainMsg"></div>
     <button id="restartBtn">Reiniciar (R)</button>
     <div class="help">
-      <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> mover cursor<br>
+      <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> ou <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> mover cursor<br>
       <kbd>Espaço</kbd> / <kbd>Z</kbd> trocar blocos<br>
+      <kbd>F</kbd> (segurar) subir a pilha rápido<br>
+      <kbd>Esc</kbd> / <kbd>P</kbd> pausar<br>
       <kbd>R</kbd> reiniciar<br><br>
       A pilha sobe sozinha e acelera com o tempo. Se um bloco passar do topo, é Game Over.
     </div>
@@ -131,6 +134,7 @@ const CONFIG = {
   FRENZY_MULT: 0.6,
   FRENZY_DECAY_FACTOR: 1.5,
   RISE_MIN_MS: 150,
+  TURBO_RISE_MS: 250,       // intervalo por linha enquanto o turbo (F) está segurado
   SPEED_WARNING_EVERY_MS: 60 * 1000, // aviso de "velocidade aumentou" a cada minuto
   BANNER_MS: 2000,
 };
@@ -168,7 +172,9 @@ function createInitialState() {
     grid,
     nextRow: createNextRow(grid), // linha que está "nascendo" embaixo (prévia)
     riseProgress: 0,        // 0..1: quanto da próxima linha já apareceu
-    elapsedMs: 0,           // tempo de partida
+    elapsedMs: 0,           // tempo de partida (para quando pausado)
+    clock: 0,               // relógio das animações (pisca, pulso); também para no pause
+    paused: false,
     speedLevel: 0,          // minuto atual (para disparar avisos)
     cursor: { x: 2, y: CONFIG.ROWS - 3 }, // x = coluna da esquerda do cursor
     score: 0,
@@ -291,6 +297,16 @@ function riseIntervalMs(t) {
   return Math.max(RISE_MIN_MS, ms);
 }
 
+/** Intervalo efetivo agora: o normal da partida, ou o turbo se for mais rápido. */
+function currentRiseIntervalMs() {
+  const normal = riseIntervalMs(state.elapsedMs);
+  return input.turbo ? Math.min(normal, CONFIG.TURBO_RISE_MS) : normal;
+}
+
+function isTurbo() {
+  return input.turbo && state.phase === Phase.IDLE && !state.paused;
+}
+
 function isFrenzy() {
   return state.elapsedMs >= CONFIG.FRENZY_TIME_MS;
 }
@@ -315,7 +331,7 @@ function pushRow() {
 function updateRise(dt) {
   // Assim como no original, a pilha para enquanto há blocos sendo removidos
   if (state.phase !== Phase.IDLE) return;
-  state.riseProgress += dt / riseIntervalMs(state.elapsedMs);
+  state.riseProgress += dt / currentRiseIntervalMs();
   while (state.riseProgress >= 1 && state.phase === Phase.IDLE) {
     state.riseProgress -= 1;
     pushRow();
@@ -329,21 +345,60 @@ function isInDanger() {
 /* =========================================================
    INPUT
    ========================================================= */
+// Teclas de movimento/troca: repetem ao segurar e ficam bloqueadas no pause.
 const KEY_ACTIONS = {
   ArrowLeft:  () => moveCursor(-1, 0),
   ArrowRight: () => moveCursor(1, 0),
   ArrowUp:    () => moveCursor(0, -1),
   ArrowDown:  () => moveCursor(0, 1),
+  KeyA:       () => moveCursor(-1, 0),
+  KeyD:       () => moveCursor(1, 0),
+  KeyW:       () => moveCursor(0, -1),
+  KeyS:       () => moveCursor(0, 1),
   Space:      () => trySwap(),
   KeyZ:       () => trySwap(),
-  KeyR:       () => restart(),
 };
 
+// Teclas de sistema: funcionam mesmo pausado e ignoram a repetição automática.
+const SYSTEM_ACTIONS = {
+  Escape: () => togglePause(),
+  KeyP:   () => togglePause(),
+  KeyR:   () => restart(),
+};
+
+// Teclas "seguradas" (estado contínuo, não ação única)
+const TURBO_KEYS = new Set(["KeyF"]);
+const input = { turbo: false };
+
 document.addEventListener("keydown", (e) => {
+  if (TURBO_KEYS.has(e.code)) {
+    e.preventDefault();
+    input.turbo = true;
+    return;
+  }
+  const system = SYSTEM_ACTIONS[e.code];
+  if (system) {
+    e.preventDefault();
+    if (!e.repeat) system();
+    return;
+  }
   const action = KEY_ACTIONS[e.code];
   if (!action) return;
   e.preventDefault();          // evita rolagem da página com setas/espaço
+  if (state.paused) return;    // sem mover/trocar durante o pause
   action();
+});
+
+document.addEventListener("keyup", (e) => {
+  if (TURBO_KEYS.has(e.code)) input.turbo = false;
+});
+
+// Se a janela perde o foco, o keyup do turbo pode nunca chegar: solta o turbo.
+window.addEventListener("blur", () => { input.turbo = false; });
+
+// Trocar de aba pausa o jogo automaticamente.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && state.phase !== Phase.GAME_OVER) state.paused = true;
 });
 
 document.getElementById("restartBtn").addEventListener("click", (e) => {
@@ -351,6 +406,11 @@ document.getElementById("restartBtn").addEventListener("click", (e) => {
   e.currentTarget.blur();      // evita que Espaço "clique" o botão depois
   canvas.focus();
 });
+
+function togglePause() {
+  if (state.phase === Phase.GAME_OVER) return;
+  state.paused = !state.paused;
+}
 
 function moveCursor(dx, dy) {
   const c = state.cursor;
@@ -522,6 +582,9 @@ function showBanner(text) {
    UPDATE (lógica por frame)
    ========================================================= */
 function update(dt) {
+  // Pausado: nada avança (pilha, cronômetro, chains, avisos, animações)
+  if (state.paused) return;
+  state.clock += dt;
   if (state.phase === Phase.GAME_OVER) return;
 
   state.elapsedMs += dt;
@@ -577,7 +640,8 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
-function render(time) {
+function render() {
+  const time = state.clock; // relógio do jogo: congela durante o pause
   const S = CONFIG.CELL;
   // Deslocamento vertical da pilha (em pixels) conforme a próxima linha surge
   const offset = state.riseProgress * S;
@@ -621,16 +685,19 @@ function render(time) {
 
   drawCursor(time, offset);
 
+  if (isTurbo()) drawTurboTag();
   if (state.banner) drawBanner(state.banner, time);
   if (state.phase === Phase.GAME_OVER) drawGameOver();
+  else if (state.paused) drawPaused();
 
   // Painel lateral
   ui.timer.textContent = formatTime(state.elapsedMs);
   ui.score.textContent = state.score;
   ui.bestChain.textContent = state.bestChain;
-  const rowsPerMin = 60000 / riseIntervalMs(state.elapsedMs);
+  const rowsPerMin = 60000 / currentRiseIntervalMs();
   ui.speed.textContent = rowsPerMin < 10 ? rowsPerMin.toFixed(1) : Math.round(rowsPerMin);
-  ui.speed.className = isFrenzy() ? "value frenzy" : rowsPerMin >= 20 ? "value fast" : "value";
+  ui.speed.className = isTurbo() ? "value turbo"
+    : isFrenzy() ? "value frenzy" : rowsPerMin >= 20 ? "value fast" : "value";
   ui.chainMsg.textContent = state.message;
 }
 
@@ -736,6 +803,35 @@ function drawBanner(text, time) {
   ctx.restore();
 }
 
+function drawPaused() {
+  ctx.save();
+  ctx.fillStyle = "rgba(8,9,14,0.82)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 40px system-ui, sans-serif";
+  ctx.fillText("PAUSADO", cx, cy - 14);
+  ctx.fillStyle = "#8a90a8";
+  ctx.font = "15px system-ui, sans-serif";
+  ctx.fillText("Esc ou P para continuar", cx, cy + 24);
+  ctx.restore();
+}
+
+/** Etiqueta discreta no canto inferior enquanto o turbo está ativo. */
+function drawTurboTag() {
+  ctx.save();
+  ctx.font = "bold 13px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "rgba(12,14,21,0.75)";
+  ctx.fillRect(canvas.width - 84, 6, 78, 22);
+  ctx.fillStyle = "#7fd6ff";
+  ctx.fillText("▲▲ TURBO", canvas.width - 12, 10);
+  ctx.restore();
+}
+
 function drawGameOver() {
   ctx.save();
   ctx.fillStyle = "rgba(8,9,14,0.78)";
@@ -774,7 +870,7 @@ function loop(time) {
   const dt = lastTime ? Math.min(time - lastTime, 100) : 0;
   lastTime = time;
   update(dt);
-  render(time);
+  render();
   requestAnimationFrame(loop);
 }
 
