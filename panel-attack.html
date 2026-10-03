@@ -383,17 +383,17 @@ const DPR = Math.min(window.devicePixelRatio || 1, 2);
    ========================================================= */
 const ELEMENTS = [
   null,
-  { key: "water",   name: "Água",     light: "#4cbaf7", dark: "#0a4a98", glow: "rgba(140,225,255,0.45)", rim: "#062c5e",
+  { key: "water",   name: "Água",     light: "#4fe0ff", dark: "#0a5ff0", glow: "rgba(170,245,255,0.55)", rim: "#032c86",
     texture: textureWater,   icon: iconWater },
-  { key: "fire",    name: "Fogo",     light: "#ff9a2e", dark: "#b3260b", glow: "rgba(255,215,100,0.50)", rim: "#661204",
+  { key: "fire",    name: "Fogo",     light: "#ffc21a", dark: "#f0300a", glow: "rgba(255,245,140,0.60)", rim: "#7a0f00",
     texture: textureFire,    icon: iconFire },
-  { key: "stone",   name: "Pedra",    light: "#a8a194", dark: "#5a544b", glow: null,                     rim: "#36312b",
-    texture: textureStone,   icon: null, rough: true },
-  { key: "air",     name: "Ar",       light: "#eaf9fe", dark: "#7fcbe6", glow: "rgba(255,255,255,0.55)", rim: "#3f8eae",
+  { key: "earth",   name: "Terra",    light: "#d98a45", dark: "#7a360c", glow: "rgba(255,200,130,0.30)", rim: "#4f2006",
+    texture: textureEarth,   icon: iconEarth },
+  { key: "air",     name: "Ar",       light: "#f4feff", dark: "#3cd0f2", glow: "rgba(255,255,255,0.65)", rim: "#0f86b2",
     texture: textureAir,     icon: iconAir },
-  { key: "plant",   name: "Planta",   light: "#72d04c", dark: "#1b651e", glow: "rgba(170,255,120,0.35)", rim: "#0e3a10",
+  { key: "plant",   name: "Planta",   light: "#9cf55a", dark: "#14a02a", glow: "rgba(220,255,150,0.45)", rim: "#08560f",
     texture: texturePlant,   icon: iconPlant },
-  { key: "organic", name: "Orgânico", light: "#626872", dark: "#1d2024", glow: "rgba(255,255,255,0.07)", rim: "#0b0d10",
+  { key: "organic", name: "Orgânico", light: "#6e6a86", dark: "#1c1a28", glow: "rgba(200,170,255,0.18)", rim: "#08070d",
     texture: textureOrganic, icon: iconOrganic },
 ];
 const NUM_COLORS = ELEMENTS.length - 1;
@@ -1093,26 +1093,36 @@ function drawTile(g, s, el, rand) {
   el.texture(g, s, rand);
 
   // Bisel: faces claras em cima/esquerda, escuras embaixo/direita
-  poly(g, [[0, 0], [s, 0], [ix1, iy0], [ix0, iy0]], "rgba(255,255,255,0.30)");
-  poly(g, [[0, 0], [ix0, iy0], [ix0, iy1], [0, s]], "rgba(255,255,255,0.14)");
-  poly(g, [[s, 0], [s, s], [ix1, iy1], [ix1, iy0]], "rgba(0,0,0,0.22)");
-  poly(g, [[0, s], [ix0, iy1], [ix1, iy1], [s, s]], "rgba(0,0,0,0.36)");
+  poly(g, [[0, 0], [s, 0], [ix1, iy0], [ix0, iy0]], "rgba(255,255,255,0.38)");
+  poly(g, [[0, 0], [ix0, iy0], [ix0, iy1], [0, s]], "rgba(255,255,255,0.18)");
+  poly(g, [[s, 0], [s, s], [ix1, iy1], [ix1, iy0]], "rgba(0,0,0,0.16)");
+  poly(g, [[0, s], [ix0, iy1], [ix1, iy1], [s, s]], "rgba(0,0,0,0.28)");
 
   // Painel interno rebaixado: sombra em cima/esquerda, luz embaixo/direita
   g.lineWidth = Math.max(1, s * 0.014);
-  g.strokeStyle = "rgba(0,0,0,0.35)";
+  g.strokeStyle = "rgba(0,0,0,0.25)";
   g.beginPath(); g.moveTo(ix0, iy1); g.lineTo(ix0, iy0); g.lineTo(ix1, iy0); g.stroke();
-  g.strokeStyle = "rgba(255,255,255,0.25)";
+  g.strokeStyle = "rgba(255,255,255,0.35)";
   g.beginPath(); g.moveTo(ix1, iy0); g.lineTo(ix1, iy1); g.lineTo(ix0, iy1); g.stroke();
 
   if (el.icon) el.icon(g, s);
 
   // Brilho superior
   const gloss = g.createLinearGradient(0, y0, 0, s * 0.55);
-  gloss.addColorStop(0, "rgba(255,255,255,0.20)");
+  gloss.addColorStop(0, "rgba(255,255,255,0.30)");
   gloss.addColorStop(1, "rgba(255,255,255,0)");
   g.fillStyle = gloss;
   g.fillRect(0, 0, s, s * 0.55);
+
+  // Filete de luz logo dentro do contorno (canto superior esquerdo mais forte)
+  const edge = g.createLinearGradient(x0, y0, x1, y1);
+  edge.addColorStop(0, "rgba(255,255,255,0.75)");
+  edge.addColorStop(0.5, "rgba(255,255,255,0.15)");
+  edge.addColorStop(1, "rgba(255,255,255,0)");
+  roundRectOn(g, x0 + s * 0.03, y0 + s * 0.03, x1 - x0 - s * 0.06, y1 - y0 - s * 0.06, s * 0.06);
+  g.lineWidth = Math.max(1, s * 0.012);
+  g.strokeStyle = edge;
+  g.stroke();
   g.restore();
 
   // Contorno
@@ -1225,12 +1235,13 @@ function sphere(g, x, y, r, [hi, mid, lo], outline) {
 }
 
 // ---------- Texturas ----------
+// Texturas leves: dão material ao bloco sem "sujar" a cor principal.
 
 function textureWater(g, s, rand) {
   g.lineCap = "round";
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 9; i++) {
     crack(g, s, rand, 4, 0.35);
-    g.strokeStyle = i % 3 === 0 ? "rgba(0,30,80,0.35)" : "rgba(200,245,255,0.45)";
+    g.strokeStyle = i % 3 === 0 ? "rgba(0,40,140,0.22)" : "rgba(210,250,255,0.55)";
     g.lineWidth = s * (0.008 + rand() * 0.01);
     g.stroke();
   }
@@ -1242,37 +1253,44 @@ function textureFire(g, s, rand) {
     g.beginPath();
     g.moveTo(-s * 0.1, y);
     g.bezierCurveTo(s * 0.3, y + (rand() - 0.5) * s * 0.4, s * 0.7, y + (rand() - 0.5) * s * 0.4, s * 1.1, y + (rand() - 0.5) * s * 0.2);
-    g.strokeStyle = i % 2 ? "rgba(255,210,90,0.35)" : "rgba(110,15,0,0.30)";
+    g.strokeStyle = i % 2 ? "rgba(255,240,120,0.45)" : "rgba(190,20,0,0.18)";
     g.lineWidth = s * (0.02 + rand() * 0.03);
     g.stroke();
   }
   for (let i = 0; i < 16; i++) {
     g.beginPath();
     g.arc(rand() * s, rand() * s, s * (0.006 + rand() * 0.008), 0, Math.PI * 2);
-    g.fillStyle = "rgba(255,235,160,0.9)";
+    g.fillStyle = "rgba(255,250,190,0.95)";
     g.fill();
   }
 }
 
-function textureStone(g, s, rand) {
-  for (let i = 0; i < 500; i++) {
-    const size = s * (0.008 + rand() * 0.018);
+/** Terra batida: manchas quentes e escuras, grãos, pedrinhas e rachaduras finas. */
+function textureEarth(g, s, rand) {
+  for (let i = 0; i < 36; i++) {
+    softBlob(g, rand() * s, rand() * s, s * (0.06 + rand() * 0.12),
+      rand() < 0.55 ? "rgba(255,196,120,0.35)" : "rgba(120,48,8,0.28)");
+  }
+  for (let i = 0; i < 260; i++) {
+    const size = s * (0.008 + rand() * 0.014);
     g.fillStyle = rand() < 0.5
-      ? `rgba(255,255,255,${0.05 + rand() * 0.12})`
-      : `rgba(0,0,0,${0.05 + rand() * 0.15})`;
+      ? `rgba(255,225,175,${0.10 + rand() * 0.22})`
+      : `rgba(90,32,4,${0.10 + rand() * 0.2})`;
     g.fillRect(rand() * s, rand() * s, size, size);
   }
-  softBlob(g, s * (0.55 + rand() * 0.3), s * (0.6 + rand() * 0.3), s * 0.35, "rgba(150,85,40,0.40)");
+  for (let i = 0; i < 8; i++) {
+    const x = rand() * s, y = rand() * s, r = s * (0.014 + rand() * 0.016);
+    g.beginPath(); g.ellipse(x + r * 0.25, y + r * 0.35, r * 1.2, r, 0, 0, Math.PI * 2);
+    g.fillStyle = "rgba(80,30,5,0.45)"; g.fill();
+    g.beginPath(); g.ellipse(x, y, r * 1.2, r, 0, 0, Math.PI * 2);
+    g.fillStyle = "#f3c690"; g.fill();
+  }
   g.lineCap = "round";
-  for (let i = 0; i < 5; i++) {
-    crack(g, s, rand, 3, 0.4);
+  for (let i = 0; i < 3; i++) {
+    crack(g, s, rand, 3, 0.3);
     g.lineWidth = s * 0.012;
-    g.strokeStyle = "rgba(30,25,20,0.55)";
+    g.strokeStyle = "rgba(90,35,5,0.45)";
     g.stroke();
-    g.save(); g.translate(s * 0.008, s * 0.008);
-    g.strokeStyle = "rgba(255,255,255,0.15)";
-    g.stroke();
-    g.restore();
   }
 }
 
@@ -1280,29 +1298,29 @@ function textureAir(g, s, rand) {
   for (let i = 0; i < 14; i++) {
     const x = rand() * s;
     const y = rand() < 0.5 ? s * (0.7 + rand() * 0.35) : s * rand() * 0.35;
-    softBlob(g, x, y, s * (0.08 + rand() * 0.14), "rgba(255,255,255,0.75)");
+    softBlob(g, x, y, s * (0.08 + rand() * 0.14), "rgba(255,255,255,0.8)");
   }
 }
 
 function texturePlant(g, s, rand) {
-  for (let i = 0; i < 160; i++) {
+  for (let i = 0; i < 140; i++) {
     g.beginPath();
     g.arc(rand() * s, rand() * s, s * (0.015 + rand() * 0.05), 0, Math.PI * 2);
-    g.fillStyle = rand() < 0.55
-      ? `rgba(10,55,10,${0.12 + rand() * 0.18})`
-      : `rgba(190,255,110,${0.08 + rand() * 0.15})`;
+    g.fillStyle = rand() < 0.45
+      ? `rgba(0,90,20,${0.08 + rand() * 0.12})`
+      : `rgba(220,255,120,${0.10 + rand() * 0.16})`;
     g.fill();
   }
 }
 
 function textureOrganic(g, s, rand) {
   for (let i = 0; i < 220; i++) {
-    g.fillStyle = `rgba(255,255,255,${0.02 + rand() * 0.05})`;
+    g.fillStyle = `rgba(190,170,255,${0.03 + rand() * 0.06})`;
     g.fillRect(rand() * s, rand() * s, s * 0.012, s * 0.012);
   }
   const sheen = g.createLinearGradient(0, 0, s, s);
   sheen.addColorStop(0.25, "rgba(255,255,255,0)");
-  sheen.addColorStop(0.4, "rgba(255,255,255,0.08)");
+  sheen.addColorStop(0.4, "rgba(255,255,255,0.12)");
   sheen.addColorStop(0.55, "rgba(255,255,255,0)");
   g.fillStyle = sheen;
   g.fillRect(0, 0, s, s);
@@ -1311,7 +1329,7 @@ function textureOrganic(g, s, rand) {
 // ---------- Ícones ----------
 
 function iconWater(g, s) {
-  const cx = s / 2, cy = s * 0.5, R = s * 0.26;
+  const cx = s / 2, cy = s * 0.49, R = s * 0.29;
   const drop = () => {
     g.beginPath();
     g.moveTo(cx, cy - R);
@@ -1322,19 +1340,19 @@ function iconWater(g, s) {
     g.closePath();
   };
   const fill = g.createRadialGradient(cx - R * 0.2, cy + R * 0.1, 0, cx, cy + R * 0.2, R * 1.1);
-  fill.addColorStop(0, "#e2f9ff");
-  fill.addColorStop(0.5, "#62c9f2");
-  fill.addColorStop(1, "#1a7fcf");
-  emboss(g, s, drop, fill, "#0b4a8c");
+  fill.addColorStop(0, "#f0fdff");
+  fill.addColorStop(0.45, "#5ee3ff");
+  fill.addColorStop(1, "#1592ff");
+  emboss(g, s, drop, fill, "#0742a8");
   // Reflexo
   g.beginPath();
   g.ellipse(cx - R * 0.32, cy + R * 0.35, R * 0.11, R * 0.26, -0.3, 0, Math.PI * 2);
-  g.fillStyle = "rgba(255,255,255,0.8)";
+  g.fillStyle = "rgba(255,255,255,0.9)";
   g.fill();
 }
 
 function iconFire(g, s) {
-  const cx = s / 2, cy = s * 0.5, R = s * 0.29;
+  const cx = s / 2, cy = s * 0.5, R = s * 0.31;
   const flame = (scale, oy) => () => {
     const p = (x, y) => [cx + x * scale * R, cy + (y * scale + oy) * R];
     g.beginPath();
@@ -1350,18 +1368,49 @@ function iconFire(g, s) {
     g.closePath();
   };
   const outer = g.createLinearGradient(0, cy - R, 0, cy + R);
-  outer.addColorStop(0, "#ffb347");
-  outer.addColorStop(0.6, "#f2621a");
-  outer.addColorStop(1, "#c8300a");
-  emboss(g, s, flame(1, 0), outer, "#6e1404");
+  outer.addColorStop(0, "#ffe04a");
+  outer.addColorStop(0.55, "#ff7a00");
+  outer.addColorStop(1, "#e81e00");
+  emboss(g, s, flame(1, 0), outer, "#7a0e00");
   const inner = g.createLinearGradient(0, cy - R * 0.3, 0, cy + R);
-  inner.addColorStop(0, "#fff4b8");
-  inner.addColorStop(1, "#ffb43a");
-  emboss(g, s, flame(0.55, 0.36), inner, "#c2550e");
+  inner.addColorStop(0, "#ffffe0");
+  inner.addColorStop(1, "#ffd21f");
+  emboss(g, s, flame(0.55, 0.36), inner, "#d45a00");
+}
+
+/** Terra: montinho de três torrões/pedrinhas em relevo. */
+function iconEarth(g, s) {
+  const cx = s / 2, cy = s * 0.53, R = s * 0.3;
+  const clod = (x, y, rx, ry, rot) => {
+    const px = cx + x * R, py = cy + y * R;
+    const path = () => {
+      g.beginPath();
+      g.ellipse(px, py, rx * R, ry * R, rot, 0, Math.PI * 2);
+    };
+    const fill = g.createRadialGradient(px - rx * R * 0.35, py - ry * R * 0.45, 0, px, py, rx * R * 1.1);
+    fill.addColorStop(0, "#ffe6b8");
+    fill.addColorStop(0.5, "#e9a157");
+    fill.addColorStop(1, "#a85a1c");
+    emboss(g, s, path, fill, "#552405");
+  };
+  clod(-0.45, 0.32, 0.5, 0.38, -0.15);
+  clod(0.47, 0.34, 0.47, 0.36, 0.2);
+  clod(0, -0.24, 0.55, 0.44, 0);
+  // Rachadura no torrão de cima
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  g.lineWidth = Math.max(1, s * 0.014);
+  g.strokeStyle = "rgba(95,40,8,0.7)";
+  g.beginPath();
+  g.moveTo(cx - R * 0.18, cy - R * 0.55);
+  g.lineTo(cx - R * 0.05, cy - R * 0.3);
+  g.lineTo(cx - R * 0.16, cy - R * 0.12);
+  g.lineTo(cx - R * 0.02, cy + R * 0.08);
+  g.stroke();
 }
 
 function iconAir(g, s) {
-  const cx = s / 2, cy = s * 0.53, R = s * 0.3;
+  const cx = s / 2, cy = s * 0.53, R = s * 0.32;
   const P = (x, y) => [cx + x * R, cy + y * R];
   const wind = () => {
     g.beginPath();
@@ -1377,7 +1426,7 @@ function iconAir(g, s) {
     g.bezierCurveTo(...P(-0.2, 0.35), ...P(0.25, 0.4), ...P(0.35, 0.62));
     g.bezierCurveTo(...P(0.42, 0.82), ...P(0.15, 0.9), ...P(0.05, 0.75));
   };
-  embossStroke(g, s, wind, "#ffffff", "#4f9fc0", s * 0.045);
+  embossStroke(g, s, wind, "#ffffff", "#1a9cc8", s * 0.05);
 
   // Pena no canto superior direito
   const [fx, fy] = P(0.58, -0.55);
@@ -1393,7 +1442,7 @@ function iconAir(g, s) {
     g.closePath();
     g.restore();
   };
-  emboss(g, s, feather, "#f4fbff", "#4f9fc0");
+  emboss(g, s, feather, "#ffffff", "#1a9cc8");
   const shaft = () => {
     g.save();
     g.translate(fx, fy);
@@ -1405,62 +1454,58 @@ function iconAir(g, s) {
   };
   shaft();
   g.lineWidth = Math.max(1, s * 0.012);
-  g.strokeStyle = "#4f9fc0";
+  g.strokeStyle = "#1a9cc8";
   g.stroke();
 }
 
+/** Planta: folha de bordo grande, centralizada e sem talo. */
 function iconPlant(g, s) {
-  const cx = s / 2, cy = s * 0.5, R = s * 0.3;
+  const R = s * 0.45;
   // Folha de bordo: 5 lobos pontudos (ângulo a partir de "para cima", tamanho),
   // cada um com um dente lateral, e reentrâncias entre eles
-  const LOBES = [[-125, 0.62], [-60, 0.9], [0, 1], [60, 0.9], [125, 0.62]];
+  const LOBES = [[-122, 0.7], [-60, 0.92], [0, 1], [60, 0.92], [122, 0.7]];
+  // A folha vai de -R (ponta de cima) a ~+0.4R (lobos de baixo): centraliza essa faixa
+  const cx = s / 2, cy = s * 0.5 + R * 0.3;
   const polar = (deg, r) => {
     const a = (deg * Math.PI) / 180;
     return [cx + Math.sin(a) * r * R, cy - Math.cos(a) * r * R];
   };
-  const leafPoints = [polar(-180, 0.2)];
+  const leafPoints = [polar(-180, 0.22)];
   LOBES.forEach(([a, L], i) => {
     leafPoints.push(
-      polar(a - 24, 0.6 * L), polar(a - 16, 0.8 * L), polar(a - 10, 0.68 * L),
+      polar(a - 24, 0.62 * L), polar(a - 16, 0.82 * L), polar(a - 10, 0.7 * L),
       polar(a, L),
-      polar(a + 10, 0.68 * L), polar(a + 16, 0.8 * L), polar(a + 24, 0.6 * L));
-    if (i < LOBES.length - 1) leafPoints.push(polar((a + LOBES[i + 1][0]) / 2, 0.45));
+      polar(a + 10, 0.7 * L), polar(a + 16, 0.82 * L), polar(a + 24, 0.62 * L));
+    if (i < LOBES.length - 1) leafPoints.push(polar((a + LOBES[i + 1][0]) / 2, 0.48));
   });
-  leafPoints.push(polar(180, 0.2));
+  leafPoints.push(polar(180, 0.22));
   const leaf = () => {
     g.beginPath();
     leafPoints.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
     g.closePath();
   };
-  // Talo (atrás da folha)
-  const stem = () => {
-    g.beginPath();
-    g.moveTo(cx, cy + R * 0.2);
-    g.quadraticCurveTo(cx + R * 0.02, cy + R * 0.7, cx + R * 0.1, cy + R * 1.08);
-  };
-  embossStroke(g, s, stem, "#3c8a2c", "#123d10", s * 0.03);
 
-  const fill = g.createRadialGradient(cx - R * 0.2, cy - R * 0.2, 0, cx, cy, R * 1.05);
-  fill.addColorStop(0, "#c2f597");
-  fill.addColorStop(0.55, "#4fae37");
-  fill.addColorStop(1, "#22691c");
-  emboss(g, s, leaf, fill, "#123d10");
+  const fill = g.createRadialGradient(cx - R * 0.2, cy - R * 0.35, 0, cx, cy - R * 0.2, R * 1.05);
+  fill.addColorStop(0, "#e6ffa8");
+  fill.addColorStop(0.5, "#5fe03a");
+  fill.addColorStop(1, "#16951f");
+  emboss(g, s, leaf, fill, "#0a4d10");
 
-  // Nervuras
+  // Nervuras saindo do centro da base
   g.lineCap = "round";
-  g.lineWidth = Math.max(1, s * 0.012);
-  g.strokeStyle = "rgba(20,70,15,0.65)";
-  const base = [cx, cy + R * 0.22];
+  g.lineWidth = Math.max(1, s * 0.016);
+  g.strokeStyle = "rgba(10,90,20,0.7)";
+  const base = [cx, cy + R * 0.12];
   for (const [deg, L] of LOBES) {
     g.beginPath();
     g.moveTo(...base);
-    g.lineTo(...polar(deg, L * 0.8));
+    g.lineTo(...polar(deg, L * 0.82));
     g.stroke();
   }
 }
 
 function iconOrganic(g, s) {
-  const cx = s / 2, cy = s * 0.5, R = s * 0.27;
+  const cx = s / 2, cy = s * 0.5, R = s * 0.28;
   const P = (x, y) => [cx + x * R, cy + y * R];
   const carbons = [P(-0.42, 0), P(0.42, 0)];
   const hydrogens = [
@@ -1470,16 +1515,16 @@ function iconOrganic(g, s) {
   // Ligações (bastões)
   const bonds = [[carbons[0], carbons[1]], ...hydrogens.map(([c, h]) => [carbons[c], h])];
   g.lineCap = "round";
-  for (const [lw, color] of [[R * 0.16, "#0c0e10"], [R * 0.09, "#c9d2d8"], [R * 0.03, "rgba(255,255,255,0.8)"]]) {
+  for (const [lw, color] of [[R * 0.17, "#08090c"], [R * 0.1, "#dfe6ee"], [R * 0.035, "rgba(255,255,255,0.9)"]]) {
     g.lineWidth = lw;
     g.strokeStyle = color;
     for (const [[ax, ay], [bx, by]] of bonds) {
       g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
     }
   }
-  // Esferas
-  for (const [, [x, y]] of hydrogens) sphere(g, x, y, R * 0.18, ["#ffffff", "#dfe5e8", "#8a959c"], "#3a4045");
-  for (const [x, y] of carbons) sphere(g, x, y, R * 0.26, ["#a9c2c2", "#3c5456", "#121c1d"], "#060909");
+  // Esferas: hidrogênios brancos, carbonos em roxo vivo
+  for (const [, [x, y]] of hydrogens) sphere(g, x, y, R * 0.19, ["#ffffff", "#eef2f6", "#9aa6b2"], "#2a2f36");
+  for (const [x, y] of carbons) sphere(g, x, y, R * 0.27, ["#f2d6ff", "#a64dff", "#3d0a78"], "#1a0533");
 }
 
 /* =========================================================
