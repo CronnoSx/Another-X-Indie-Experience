@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel Attack – Protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap">
 <style>
   /* =========================================================
      STYLE
@@ -11,12 +14,21 @@
   :root {
     --bg: #14161f;
     --panel: #1e2130;
+    --panel-2: #272b3e;
+    --line: #3a3f58;
     --text: #e8eaf2;
     --muted: #8a90a8;
     --accent: #ffd84a;
     --danger: #ff5a64;
+    --primary: #4a6cf7;
+    --primary-hover: #5b7bff;
+    --display: "Lilita One", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
+  /* Lilita One só tem um peso: o 800 deixa a fonte reserva em negrito
+     sem gerar negrito falso na Lilita */
+  .game-title, .opt-title, .overlay h2, #side h1 { font-weight: 800 !important; font-synthesis: none; }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     min-height: 100vh;
@@ -27,30 +39,143 @@
     align-items: center;
     justify-content: center;
   }
-  #app {
+  #app { width: 100%; padding: 16px; }
+  .screen { width: 100%; display: flex; justify-content: center; }
+
+  /* ---------- Menu / Opções ---------- */
+  .menu-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px 24px;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 24px;
-    align-items: flex-start;
-    padding: 16px;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
   }
-  canvas {
-    background: #0c0e15;
-    border: 3px solid #3a3f58;
+  .game-title {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 46px;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin: 0;
+    text-align: center;
+  }
+  .game-sub {
+    margin-top: 8px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  .tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .tiles canvas { width: 40px; height: 40px; display: block; }
+  .menu-list, .actions { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 16px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: left;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .menu-btn:hover:not(:disabled), .menu-btn:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    background: #2f3450;
+  }
+  .menu-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .menu-btn.primary:hover, .menu-btn.primary:focus-visible { background: var(--primary-hover); border-color: #fff; }
+  .menu-btn:disabled { cursor: not-allowed; color: var(--muted); }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: #33384f;
+    color: var(--muted);
+  }
+  .menu-hint { font-size: 12px; color: var(--muted); }
+  .opt-title { font-family: var(--display); font-weight: 400; font-size: 30px; margin: 0; letter-spacing: 1px; }
+  .opt-row { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .opt-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    flex: 1;
+    padding: 9px 6px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
     border-radius: 6px;
+    cursor: pointer;
+  }
+  .seg button:focus-visible { outline: none; border-color: var(--accent); }
+  .seg button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .credits {
+    width: 100%;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .credits strong { color: var(--text); }
+
+  /* ---------- Jogo ---------- */
+  #gameScreen { flex-wrap: wrap; align-items: flex-start; gap: 24px; }
+  .board-wrap { position: relative; max-width: 100%; }
+  #board {
     display: block;
     max-width: 100%;
     height: auto;
+    background: #0c0e15;
+    border: 3px solid var(--line);
+    border-radius: 6px;
   }
-  canvas:focus { outline: none; border-color: #5a6390; }
+  #board:focus { outline: none; border-color: #5a6390; }
+  .overlay {
+    position: absolute;
+    inset: 3px;
+    border-radius: 4px;
+    background: rgba(8, 9, 14, 0.84);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 16px;
+    text-align: center;
+  }
+  .overlay h2 { font-family: var(--display); font-weight: 400; font-size: 42px; letter-spacing: 1px; margin: 0; }
+  .overlay h2.danger { color: var(--danger); }
+  .overlay .actions { width: min(230px, 100%); }
+  .summary { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 18px; margin: 0; }
+  .summary dt { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .summary dd { margin: 0; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; grid-row: 2; }
   #side {
     width: 210px;
     background: var(--panel);
     border-radius: 8px;
     padding: 16px;
   }
-  h1 { font-size: 20px; margin: 0 0 12px; letter-spacing: 1px; }
+  #side h1 { font-family: var(--display); font-weight: 400; font-size: 24px; margin: 0 0 12px; letter-spacing: 1px; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
   .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
   .stat .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -60,48 +185,136 @@
   #speed.frenzy { color: var(--danger); }
   #speed.turbo { color: #7fd6ff; }
   #chainMsg { color: var(--accent); font-weight: 700; min-height: 22px; font-size: 18px; margin-top: 10px; }
-  button {
-    width: 100%;
-    margin-top: 12px;
+  .side-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .side-btn {
+    flex: 1;
     padding: 10px;
-    font-size: 15px;
+    font: inherit;
+    font-size: 14px;
     font-weight: 600;
     border: 0;
     border-radius: 6px;
-    background: #4a6cf7;
+    background: var(--primary);
     color: #fff;
     cursor: pointer;
   }
-  button:hover { background: #5b7bff; }
+  .side-btn:hover { background: var(--primary-hover); }
+  .side-btn.secondary { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); }
+  .side-btn.secondary:hover { background: #2f3450; }
   .help { font-size: 13px; color: var(--muted); line-height: 1.6; margin-top: 16px; }
   kbd {
     background: #2c3044; border: 1px solid #454b66; border-radius: 4px;
-    padding: 0 5px; font-size: 12px; color: var(--text);
+    padding: 0 5px; font-size: 12px; font-family: inherit; color: var(--text);
+  }
+  .menu-btn kbd { font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
   }
 </style>
 </head>
 <body>
 <div id="app">
-  <canvas id="board" tabindex="0"></canvas>
-  <div id="side">
-    <h1>PANEL ATTACK</h1>
-    <div class="stats">
-      <div class="stat wide"><div class="label">Tempo</div><div class="value" id="timer">00:00</div></div>
-      <div class="stat wide"><div class="label">Pontos</div><div class="value" id="score">0</div></div>
-      <div class="stat"><div class="label">Maior chain</div><div class="value" id="bestChain">0</div></div>
-      <div class="stat"><div class="label">Linhas/min</div><div class="value" id="speed">0</div></div>
+
+  <!-- ======================= MENU PRINCIPAL ======================= -->
+  <section id="menuScreen" class="screen">
+    <div class="menu-card">
+      <div>
+        <h1 class="game-title">PANEL ATTACK</h1>
+        <div class="game-sub">Edição Elemental</div>
+      </div>
+      <div class="tiles" id="menuTiles" aria-hidden="true"></div>
+      <nav class="menu-list" id="menuList">
+        <button class="menu-btn primary" id="btnEndless">Jogar Endless <span aria-hidden="true">▶</span></button>
+        <button class="menu-btn" disabled>Puzzle Mode <span class="badge">Em breve</span></button>
+        <button class="menu-btn" disabled>Campanha <span class="badge">Em breve</span></button>
+        <button class="menu-btn" id="btnOptions">Opções / Créditos</button>
+      </nav>
+      <div class="menu-hint">↑ ↓ para escolher · Enter para confirmar</div>
     </div>
-    <div id="chainMsg"></div>
-    <button id="restartBtn">Reiniciar (R)</button>
-    <div class="help">
-      <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> ou <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> mover cursor<br>
-      <kbd>Espaço</kbd> / <kbd>Z</kbd> trocar blocos<br>
-      <kbd>F</kbd> (segurar) subir a pilha rápido<br>
-      <kbd>Esc</kbd> / <kbd>P</kbd> pausar<br>
-      <kbd>R</kbd> reiniciar<br><br>
-      A pilha sobe sozinha e acelera com o tempo. Se um bloco passar do topo, é Game Over.
+  </section>
+
+  <!-- ======================= OPÇÕES / CRÉDITOS ======================= -->
+  <section id="optionsScreen" class="screen" hidden>
+    <div class="menu-card">
+      <h2 class="opt-title">Opções</h2>
+      <div class="opt-row">
+        <div class="opt-label" id="lblSpeed">Velocidade inicial da pilha</div>
+        <div class="seg" role="group" aria-labelledby="lblSpeed" id="optSpeed">
+          <button id="optSpeedSlow" data-value="slow">Lenta</button>
+          <button id="optSpeedNormal" data-value="normal">Normal</button>
+          <button id="optSpeedFast" data-value="fast">Rápida</button>
+        </div>
+      </div>
+      <div class="opt-row">
+        <div class="opt-label" id="lblAnim">Velocidade das animações</div>
+        <div class="seg" role="group" aria-labelledby="lblAnim" id="optAnim">
+          <button id="optAnimNormal" data-value="normal">Normal</button>
+          <button id="optAnimFast" data-value="fast">Rápida</button>
+        </div>
+      </div>
+      <div class="credits">
+        <strong>Créditos</strong><br>
+        Protótipo inspirado em Tetris Attack / Panel de Pon.<br>
+        Feito com HTML, CSS e JavaScript puro. Os blocos elementais são desenhados em canvas
+        a partir da referência “Elemental Puzzle Blocks”.
+      </div>
+      <div class="actions">
+        <button class="menu-btn" id="btnOptionsBack">Voltar <kbd>Esc</kbd></button>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- ======================= JOGO (ENDLESS) ======================= -->
+  <section id="gameScreen" class="screen" hidden>
+    <div class="board-wrap">
+      <canvas id="board" tabindex="0" aria-label="Tabuleiro do jogo"></canvas>
+
+      <div class="overlay" id="pauseOverlay" hidden>
+        <h2>PAUSADO</h2>
+        <div class="actions">
+          <button class="menu-btn primary" id="btnResume">Continuar <kbd>Esc</kbd></button>
+          <button class="menu-btn" id="btnPauseRestart">Reiniciar <kbd>R</kbd></button>
+          <button class="menu-btn" id="btnPauseMenu">Voltar ao Menu <kbd>M</kbd></button>
+        </div>
+      </div>
+
+      <div class="overlay" id="gameOverOverlay" hidden>
+        <h2 class="danger">GAME OVER</h2>
+        <dl class="summary">
+          <dt>Pontos</dt><dd id="goScore">0</dd>
+          <dt>Tempo</dt><dd id="goTime">00:00</dd>
+          <dt>Chain</dt><dd id="goChain">0</dd>
+        </dl>
+        <div class="actions">
+          <button class="menu-btn primary" id="btnPlayAgain">Jogar Novamente <kbd>Enter</kbd></button>
+          <button class="menu-btn" id="btnGameOverMenu">Voltar ao Menu <kbd>Esc</kbd></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="side">
+      <h1>ENDLESS</h1>
+      <div class="stats">
+        <div class="stat wide"><div class="label">Tempo</div><div class="value" id="timer">00:00</div></div>
+        <div class="stat wide"><div class="label">Pontos</div><div class="value" id="score">0</div></div>
+        <div class="stat"><div class="label">Maior chain</div><div class="value" id="bestChain">0</div></div>
+        <div class="stat"><div class="label">Linhas/min</div><div class="value" id="speed">0</div></div>
+      </div>
+      <div id="chainMsg"></div>
+      <div class="side-actions">
+        <button class="side-btn" id="restartBtn">Reiniciar</button>
+        <button class="side-btn secondary" id="menuBtn">Menu</button>
+      </div>
+      <div class="help">
+        <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> ou <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> mover cursor<br>
+        <kbd>Espaço</kbd> / <kbd>Z</kbd> trocar blocos<br>
+        <kbd>F</kbd> / <kbd>Q</kbd> (segurar) subir a pilha rápido<br>
+        <kbd>Esc</kbd> / <kbd>P</kbd> pausar<br>
+        <kbd>R</kbd> reiniciar<br><br>
+        A pilha sobe sozinha e acelera com o tempo. Se um bloco passar do topo, é Game Over.
+      </div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -114,53 +327,115 @@
 const CONFIG = {
   COLS: 7,
   ROWS: 14,
-  CELL: 44,                 // tamanho de cada célula em pixels
+  CELL: 44,                 // tamanho de cada célula em pixels (CSS)
   START_MIN_HEIGHT: 4,      // altura mínima inicial de cada coluna
   START_MAX_HEIGHT: 7,      // altura máxima inicial de cada coluna
   MIN_MATCH: 3,
-  CLEAR_DELAY_MS: 350,      // tempo em que os blocos combinados piscam antes de sumir
+
+  // --- Animações (multiplicadas pela opção "Velocidade das animações") ---
+  SWAP_MS: 110,             // duração do deslize de troca
+  FALL_START_SPEED: 0.01,   // velocidade inicial da queda (células por ms)
+  FALL_ACCEL: 0.00008,      // aceleração da queda (células por ms²)
+  CLEAR_MS: 520,            // tempo total da remoção (pisca + encolhe)
+  CLEAR_BLINK_PART: 0.6,    // fração do CLEAR_MS em que os blocos piscam
+
+  // --- Pontuação ---
   POINTS_PER_BLOCK: 10,
   COMBO_BONUS_PER_BLOCK: 10,// bônus por bloco extra além de 3 num mesmo passo
   CHAIN_BONUS: [0, 0, 50, 80, 150, 300, 400, 500, 700, 900, 1100, 1300], // índice = nº da chain
 
   // --- Rising stack ---
   // Intervalo (ms) para a pilha subir uma linha inteira.
-  // Antes de FRENZY_TIME_MS: cai exponencialmente de RISE_START_MS até RISE_AT_FRENZY_MS.
-  // Em FRENZY_TIME_MS: multiplica por FRENZY_MULT (salto brusco) e passa a
-  // cair FRENZY_DECAY_FACTOR vezes mais rápido, até o piso RISE_MIN_MS.
-  RISE_START_MS: 9000,
+  // Antes de FRENZY_TIME_MS: cai exponencialmente do valor inicial (opção do menu)
+  // até RISE_AT_FRENZY_MS. Em FRENZY_TIME_MS: multiplica por FRENZY_MULT (salto
+  // brusco) e passa a cair FRENZY_DECAY_FACTOR vezes mais rápido, até RISE_MIN_MS.
   RISE_AT_FRENZY_MS: 1500,
   FRENZY_TIME_MS: 5 * 60 * 1000,
   FRENZY_MULT: 0.6,
   FRENZY_DECAY_FACTOR: 1.5,
   RISE_MIN_MS: 150,
-  TURBO_RISE_MS: 250,       // intervalo por linha enquanto o turbo (F) está segurado
+  TURBO_RISE_MS: 250,       // intervalo por linha enquanto o turbo (F/Q) está segurado
   SPEED_WARNING_EVERY_MS: 60 * 1000, // aviso de "velocidade aumentou" a cada minuto
   BANNER_MS: 2000,
 };
 
-// Paleta de cores (índice 0 = vazio). Cada tipo tem também um símbolo
-// para ajudar a distinguir as cores (acessibilidade).
-const BLOCK_TYPES = [
-  null,
-  { color: "#e8434f", symbol: "heart"    }, // 1 vermelho
-  { color: "#3fbf5a", symbol: "circle"   }, // 2 verde
-  { color: "#3d7bf2", symbol: "triangle" }, // 3 azul
-  { color: "#f2c230", symbol: "star"     }, // 4 amarelo
-  { color: "#a653e0", symbol: "diamond"  }, // 5 roxo
-  { color: "#34c6d3", symbol: "square"   }, // 6 ciano
-];
-const NUM_COLORS = BLOCK_TYPES.length - 1;
+// Velocidade inicial da subida (tempo por linha no começo da partida)
+const SPEED_PRESETS = {
+  slow:   12000,
+  normal: 9000,
+  fast:   6000,
+};
+// Multiplicador de duração das animações
+const ANIM_PRESETS = {
+  normal: 1,
+  fast:   0.6,
+};
+
 const EMPTY = 0;
+const BOARD_W = CONFIG.COLS * CONFIG.CELL;
+const BOARD_H = CONFIG.ROWS * CONFIG.CELL;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+/* =========================================================
+   ELEMENTS
+   Os 6 tipos de bloco. Índice 0 = vazio. Cada elemento define
+   as cores do corpo, a textura e o ícone (desenhados em TILE ART).
+   ========================================================= */
+const ELEMENTS = [
+  null,
+  { key: "water",   name: "Água",     light: "#4cbaf7", dark: "#0a4a98", glow: "rgba(140,225,255,0.45)", rim: "#062c5e",
+    texture: textureWater,   icon: iconWater },
+  { key: "fire",    name: "Fogo",     light: "#ff9a2e", dark: "#b3260b", glow: "rgba(255,215,100,0.50)", rim: "#661204",
+    texture: textureFire,    icon: iconFire },
+  { key: "stone",   name: "Pedra",    light: "#a8a194", dark: "#5a544b", glow: null,                     rim: "#36312b",
+    texture: textureStone,   icon: null, rough: true },
+  { key: "air",     name: "Ar",       light: "#eaf9fe", dark: "#7fcbe6", glow: "rgba(255,255,255,0.55)", rim: "#3f8eae",
+    texture: textureAir,     icon: iconAir },
+  { key: "plant",   name: "Planta",   light: "#72d04c", dark: "#1b651e", glow: "rgba(170,255,120,0.35)", rim: "#0e3a10",
+    texture: texturePlant,   icon: iconPlant },
+  { key: "organic", name: "Orgânico", light: "#626872", dark: "#1d2024", glow: "rgba(255,255,255,0.07)", rim: "#0b0d10",
+    texture: textureOrganic, icon: iconOrganic },
+];
+const NUM_COLORS = ELEMENTS.length - 1;
+
+/* =========================================================
+   SETTINGS
+   Opções do menu, salvas no navegador quando possível.
+   ========================================================= */
+const SETTINGS_KEY = "panelAttack.settings";
+const settings = loadSettings();
+
+function loadSettings() {
+  const defaults = { speed: "normal", anim: "normal" };
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    return {
+      speed: saved.speed in SPEED_PRESETS ? saved.speed : defaults.speed,
+      anim: saved.anim in ANIM_PRESETS ? saved.anim : defaults.anim,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* sem armazenamento */ }
+}
+
+const animMult = () => ANIM_PRESETS[settings.anim];
+const swapMs = () => CONFIG.SWAP_MS * animMult();
+const clearMs = () => CONFIG.CLEAR_MS * animMult();
 
 /* =========================================================
    STATE
-   Todo o estado mutável do jogo vive em um único objeto,
+   Todo o estado mutável de uma partida vive em um único objeto,
    facilitando reset, serialização e futuras extensões.
    ========================================================= */
 const Phase = {
   IDLE: "idle",           // jogador pode trocar blocos; pilha sobe
-  CLEARING: "clearing",   // blocos combinados piscando; pilha pausada
+  SWAPPING: "swapping",   // dois blocos deslizando um para o lugar do outro
+  FALLING: "falling",     // blocos caindo após a gravidade
+  CLEARING: "clearing",   // blocos combinados piscando e sumindo
   GAME_OVER: "gameover",
 };
 
@@ -173,16 +448,18 @@ function createInitialState() {
     nextRow: createNextRow(grid), // linha que está "nascendo" embaixo (prévia)
     riseProgress: 0,        // 0..1: quanto da próxima linha já apareceu
     elapsedMs: 0,           // tempo de partida (para quando pausado)
-    clock: 0,               // relógio das animações (pisca, pulso); também para no pause
+    clock: 0,               // relógio das animações; também para no pause
     paused: false,
     speedLevel: 0,          // minuto atual (para disparar avisos)
-    cursor: { x: 2, y: CONFIG.ROWS - 3 }, // x = coluna da esquerda do cursor
+    cursor: { x: 3, y: CONFIG.ROWS - 3 }, // x = coluna da esquerda do cursor
     score: 0,
     chain: 0,               // chain atual durante a resolução
     bestChain: 0,
     phase: Phase.IDLE,
+    phaseTimer: 0,          // ms restantes na fase atual (troca / remoção)
+    swap: null,             // {x, y} da troca em animação
+    fall: null,             // {dist: grid de distâncias, max, elapsed} da queda em animação
     clearing: [],           // lista de {x, y} marcados para remoção
-    phaseTimer: 0,          // ms restantes na fase atual
     message: "",
     messageTimer: 0,
     banner: "",             // aviso grande sobre o tabuleiro (velocidade)
@@ -196,10 +473,6 @@ function createInitialState() {
    ========================================================= */
 function createEmptyGrid() {
   return Array.from({ length: CONFIG.ROWS }, () => new Array(CONFIG.COLS).fill(EMPTY));
-}
-
-function inBounds(x, y) {
-  return x >= 0 && x < CONFIG.COLS && y >= 0 && y < CONFIG.ROWS;
 }
 
 function randInt(min, max) { // inclusivo
@@ -280,16 +553,16 @@ function fixNextRow(row, grid) {
 }
 
 /**
- * Intervalo atual (ms) para subir uma linha, em função do tempo de partida.
+ * Intervalo normal (ms) para subir uma linha, em função do tempo de partida.
  * Curva exponencial suave até os 5 min, depois salto + queda mais íngreme.
  */
 function riseIntervalMs(t) {
-  const { RISE_START_MS, RISE_AT_FRENZY_MS, FRENZY_TIME_MS, FRENZY_MULT,
-          FRENZY_DECAY_FACTOR, RISE_MIN_MS } = CONFIG;
-  const ratio = RISE_AT_FRENZY_MS / RISE_START_MS;
+  const { RISE_AT_FRENZY_MS, FRENZY_TIME_MS, FRENZY_MULT, FRENZY_DECAY_FACTOR, RISE_MIN_MS } = CONFIG;
+  const start = SPEED_PRESETS[settings.speed];
+  const ratio = RISE_AT_FRENZY_MS / start;
   let ms;
   if (t < FRENZY_TIME_MS) {
-    ms = RISE_START_MS * Math.pow(ratio, t / FRENZY_TIME_MS);
+    ms = start * Math.pow(ratio, t / FRENZY_TIME_MS);
   } else {
     const after = (t - FRENZY_TIME_MS) / FRENZY_TIME_MS;
     ms = RISE_AT_FRENZY_MS * FRENZY_MULT * Math.pow(ratio, after * FRENZY_DECAY_FACTOR);
@@ -329,7 +602,8 @@ function pushRow() {
 }
 
 function updateRise(dt) {
-  // Assim como no original, a pilha para enquanto há blocos sendo removidos
+  // Como no original, a pilha só sobe com o tabuleiro "parado"
+  // (sem troca, queda ou remoção em andamento)
   if (state.phase !== Phase.IDLE) return;
   state.riseProgress += dt / currentRiseIntervalMs();
   while (state.riseProgress >= 1 && state.phase === Phase.IDLE) {
@@ -341,6 +615,72 @@ function updateRise(dt) {
 function isInDanger() {
   return state.grid[0].some(c => c !== EMPTY) || state.grid[1].some(c => c !== EMPTY);
 }
+
+/* =========================================================
+   SCREENS / MENU
+   Três telas: menu principal, opções e jogo.
+   ========================================================= */
+const Screen = { MENU: "menu", OPTIONS: "options", GAME: "game" };
+let currentScreen = Screen.MENU;
+
+const $ = (id) => document.getElementById(id);
+const screens = {
+  [Screen.MENU]: $("menuScreen"),
+  [Screen.OPTIONS]: $("optionsScreen"),
+  [Screen.GAME]: $("gameScreen"),
+};
+
+function showScreen(name) {
+  currentScreen = name;
+  for (const [key, el] of Object.entries(screens)) el.hidden = key !== name;
+  input.turbo = false;
+  if (name === Screen.MENU) $("btnEndless").focus();
+  if (name === Screen.OPTIONS) $("btnOptionsBack").focus();
+  if (name === Screen.GAME) canvas.focus();
+}
+
+function startEndless() {
+  restart();
+  showScreen(Screen.GAME);
+}
+
+function goToMenu() {
+  showScreen(Screen.MENU);
+}
+
+/** Liga um grupo de botões segmentados a uma chave de `settings`. */
+function bindSegmented(groupId, key) {
+  const buttons = [...$(groupId).querySelectorAll("button")];
+  const sync = () => buttons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === settings[key])));
+  buttons.forEach(b => b.addEventListener("click", () => {
+    settings[key] = b.dataset.value;
+    saveSettings();
+    sync();
+  }));
+  sync();
+}
+
+$("btnEndless").addEventListener("click", startEndless);
+$("btnOptions").addEventListener("click", () => showScreen(Screen.OPTIONS));
+$("btnOptionsBack").addEventListener("click", () => showScreen(Screen.MENU));
+bindSegmented("optSpeed", "speed");
+bindSegmented("optAnim", "anim");
+
+// Botões dentro do jogo devolvem o foco ao tabuleiro (para o teclado continuar valendo)
+function gameButton(id, fn) {
+  $(id).addEventListener("click", (e) => {
+    fn();
+    e.currentTarget.blur();
+    if (currentScreen === Screen.GAME) canvas.focus();
+  });
+}
+gameButton("restartBtn", () => restart());
+gameButton("menuBtn", goToMenu);
+gameButton("btnResume", () => togglePause());
+gameButton("btnPauseRestart", () => restart());
+gameButton("btnPauseMenu", goToMenu);
+gameButton("btnPlayAgain", () => restart());
+gameButton("btnGameOverMenu", goToMenu);
 
 /* =========================================================
    INPUT
@@ -359,21 +699,47 @@ const KEY_ACTIONS = {
   KeyZ:       () => trySwap(),
 };
 
-// Teclas de sistema: funcionam mesmo pausado e ignoram a repetição automática.
+// Teclas de sistema durante a partida: funcionam mesmo pausado e ignoram a repetição.
 const SYSTEM_ACTIONS = {
   Escape: () => togglePause(),
   KeyP:   () => togglePause(),
   KeyR:   () => restart(),
+  KeyM:   () => { if (state.paused) goToMenu(); },
+};
+
+// Teclas da tela de Game Over
+const GAME_OVER_ACTIONS = {
+  Enter:  () => restart(),
+  Space:  () => restart(),
+  KeyR:   () => restart(),
+  Escape: () => goToMenu(),
+  KeyM:   () => goToMenu(),
 };
 
 // Teclas "seguradas" (estado contínuo, não ação única)
-const TURBO_KEYS = new Set(["KeyF"]);
+const TURBO_KEYS = new Set(["KeyF", "KeyQ"]);
 const input = { turbo: false };
 
 document.addEventListener("keydown", (e) => {
+  if (currentScreen === Screen.GAME) handleGameKey(e);
+  else handleMenuKey(e);
+});
+
+document.addEventListener("keyup", (e) => {
+  if (TURBO_KEYS.has(e.code)) input.turbo = false;
+});
+
+function handleGameKey(e) {
   if (TURBO_KEYS.has(e.code)) {
     e.preventDefault();
     input.turbo = true;
+    return;
+  }
+  if (state.phase === Phase.GAME_OVER) {
+    const action = GAME_OVER_ACTIONS[e.code];
+    if (!action) return;
+    e.preventDefault();
+    if (!e.repeat) action();
     return;
   }
   const system = SYSTEM_ACTIONS[e.code];
@@ -387,24 +753,32 @@ document.addEventListener("keydown", (e) => {
   e.preventDefault();          // evita rolagem da página com setas/espaço
   if (state.paused) return;    // sem mover/trocar durante o pause
   action();
-});
+}
 
-document.addEventListener("keyup", (e) => {
-  if (TURBO_KEYS.has(e.code)) input.turbo = false;
-});
+/** Menu e opções: setas/WS percorrem os botões; Enter/Espaço usam o clique nativo. */
+function handleMenuKey(e) {
+  const root = screens[currentScreen];
+  const buttons = [...root.querySelectorAll("button:not(:disabled)")];
+  const dir = { ArrowDown: 1, KeyS: 1, ArrowUp: -1, KeyW: -1 }[e.code];
+  if (dir) {
+    e.preventDefault();
+    const i = buttons.indexOf(document.activeElement);
+    const next = i === -1 ? buttons[0] : buttons[(i + dir + buttons.length) % buttons.length];
+    next.focus();
+  } else if (e.code === "Escape" && currentScreen === Screen.OPTIONS) {
+    e.preventDefault();
+    showScreen(Screen.MENU);
+  }
+}
 
 // Se a janela perde o foco, o keyup do turbo pode nunca chegar: solta o turbo.
 window.addEventListener("blur", () => { input.turbo = false; });
 
 // Trocar de aba pausa o jogo automaticamente.
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && state.phase !== Phase.GAME_OVER) state.paused = true;
-});
-
-document.getElementById("restartBtn").addEventListener("click", (e) => {
-  restart();
-  e.currentTarget.blur();      // evita que Espaço "clique" o botão depois
-  canvas.focus();
+  if (document.hidden && currentScreen === Screen.GAME && state && state.phase !== Phase.GAME_OVER) {
+    state.paused = true;
+  }
 });
 
 function togglePause() {
@@ -421,9 +795,11 @@ function moveCursor(dx, dy) {
 
 /* =========================================================
    SWAP
+   A troca acontece na grade na hora; a animação só desenha os
+   dois blocos deslizando a partir das posições antigas.
    ========================================================= */
 function trySwap() {
-  // Nesta versão, trocas ficam bloqueadas enquanto uma chain resolve.
+  // Trocas só com o tabuleiro parado (sem troca, queda ou remoção em andamento)
   if (state.phase !== Phase.IDLE) return;
 
   const { x, y } = state.cursor;
@@ -435,7 +811,14 @@ function trySwap() {
   g[y][x + 1] = a;
 
   state.chain = 0;
-  resolveBoard();
+  state.swap = { x, y };
+  state.phase = Phase.SWAPPING;
+  state.phaseTimer = swapMs();
+}
+
+function finishSwap() {
+  state.swap = null;
+  settleBoard();
 }
 
 /* =========================================================
@@ -483,11 +866,12 @@ function findMatches(grid) {
 
 /* =========================================================
    GRAVITY
-   Blocos caem imediatamente até o chão ou até outro bloco.
-   Retorna true se algum bloco se moveu.
+   Os blocos vão direto para a posição final na grade; a função
+   devolve quantas células cada um caiu, para a animação de queda.
    ========================================================= */
 function applyGravity(grid) {
-  let moved = false;
+  const dist = createEmptyGrid();
+  let max = 0;
   for (let x = 0; x < CONFIG.COLS; x++) {
     let writeY = CONFIG.ROWS - 1;
     for (let y = CONFIG.ROWS - 1; y >= 0; y--) {
@@ -495,48 +879,63 @@ function applyGravity(grid) {
         if (y !== writeY) {
           grid[writeY][x] = grid[y][x];
           grid[y][x] = EMPTY;
-          moved = true;
+          dist[writeY][x] = writeY - y;
+          max = Math.max(max, writeY - y);
         }
         writeY--;
       }
     }
   }
-  return moved;
+  return { dist, max };
+}
+
+/** Quantas células um bloco já percorreu após `t` ms de queda (acelerada). */
+function fallTravel(t) {
+  const tt = t / animMult();
+  return CONFIG.FALL_START_SPEED * tt + 0.5 * CONFIG.FALL_ACCEL * tt * tt;
 }
 
 /* =========================================================
    RESOLUTION / CHAINS
-   Fluxo: gravidade -> procura matches -> (se houver) fase
-   CLEARING -> remove -> gravidade -> procura de novo ...
+   Fluxo de fases:
+     troca (SWAPPING) → gravidade (FALLING, se algo caiu)
+       → procura matches → (se houver) CLEARING → remove
+       → gravidade → procura de novo ... → IDLE
    Cada rodada consecutiva com match incrementa a chain.
    ========================================================= */
-function resolveBoard() {
-  applyGravity(state.grid);
-  const matches = findMatches(state.grid);
+function settleBoard() {
+  const { dist, max } = applyGravity(state.grid);
+  if (max > 0) {
+    state.fall = { dist, max, elapsed: 0 };
+    state.phase = Phase.FALLING;
+  } else {
+    checkMatches();
+  }
+}
 
+function finishFall() {
+  state.fall = null;
+  checkMatches();
+}
+
+function checkMatches() {
+  const matches = findMatches(state.grid);
   if (matches.length === 0) {
-    finishChain();
+    state.phase = Phase.IDLE;
+    state.chain = 0;
     return;
   }
-
   state.chain++;
   addScore(matches.length, state.chain);
-
   state.clearing = matches;
   state.phase = Phase.CLEARING;
-  state.phaseTimer = CONFIG.CLEAR_DELAY_MS;
+  state.phaseTimer = clearMs();
 }
 
-function clearMatchedBlocks() {
+function finishClear() {
   for (const { x, y } of state.clearing) state.grid[y][x] = EMPTY;
   state.clearing = [];
-  state.phase = Phase.IDLE;
-  resolveBoard(); // gravidade + checagem de novos matches (chains)
-}
-
-function finishChain() {
-  state.phase = Phase.IDLE;
-  state.chain = 0;
+  settleBoard(); // gravidade + checagem de novos matches (chains)
 }
 
 function gameOver() {
@@ -582,19 +981,14 @@ function showBanner(text) {
    UPDATE (lógica por frame)
    ========================================================= */
 function update(dt) {
-  // Pausado: nada avança (pilha, cronômetro, chains, avisos, animações)
+  // Pausado: nada avança (pilha, cronômetro, animações, chains, avisos)
   if (state.paused) return;
   state.clock += dt;
   if (state.phase === Phase.GAME_OVER) return;
 
   state.elapsedMs += dt;
   updateSpeedWarnings();
-
-  if (state.phase === Phase.CLEARING) {
-    state.phaseTimer -= dt;
-    if (state.phaseTimer <= 0) clearMatchedBlocks();
-  }
-
+  updatePhase(dt);
   updateRise(dt);
 
   if (state.messageTimer > 0) {
@@ -604,6 +998,24 @@ function update(dt) {
   if (state.bannerTimer > 0) {
     state.bannerTimer -= dt;
     if (state.bannerTimer <= 0) state.banner = "";
+  }
+}
+
+/** Avança as animações de troca, queda e remoção. */
+function updatePhase(dt) {
+  switch (state.phase) {
+    case Phase.SWAPPING:
+      state.phaseTimer -= dt;
+      if (state.phaseTimer <= 0) finishSwap();
+      break;
+    case Phase.FALLING:
+      state.fall.elapsed += dt;
+      if (fallTravel(state.fall.elapsed) >= state.fall.max) finishFall();
+      break;
+    case Phase.CLEARING:
+      state.phaseTimer -= dt;
+      if (state.phaseTimer <= 0) finishClear();
+      break;
   }
 }
 
@@ -618,19 +1030,482 @@ function updateSpeedWarnings() {
 }
 
 /* =========================================================
+   TILE ART
+   Cada elemento é desenhado UMA vez num canvas fora da tela
+   (sprite) e depois apenas copiado a cada frame.
+   Estrutura de cada peça: sombra → corpo com gradiente → textura
+   → bisel (faces claras/escuras) → painel interno rebaixado
+   → ícone em relevo → brilho → contorno.
+   ========================================================= */
+
+/** Gerador pseudoaleatório com semente: a textura sai sempre igual. */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildSprite(el, sizePx, seed) {
+  const c = document.createElement("canvas");
+  c.width = c.height = sizePx;
+  drawTile(c.getContext("2d"), sizePx, el, mulberry32(seed));
+  return c;
+}
+
+function drawTile(g, s, el, rand) {
+  const m = s * 0.05;                    // margem até a borda da célula
+  const x0 = m, y0 = m, x1 = s - m, y1 = s - m;
+  const b = s * 0.11;                    // largura do bisel
+  const ix0 = x0 + b, iy0 = y0 + b, ix1 = x1 - b, iy1 = y1 - b;
+  const trace = el.rough
+    ? roughOutline(g, x0, y0, x1, y1, s, rand)
+    : () => roundRectOn(g, x0, y0, x1 - x0, y1 - y0, s * 0.08);
+
+  // Sombra projetada
+  g.save();
+  g.translate(s * 0.01, s * 0.03);
+  trace();
+  g.fillStyle = "rgba(0,0,0,0.45)";
+  g.fill();
+  g.restore();
+
+  g.save();
+  trace();
+  g.clip();
+
+  // Corpo: gradiente diagonal + brilho central
+  const body = g.createLinearGradient(x0, y0, x1, y1);
+  body.addColorStop(0, el.light);
+  body.addColorStop(1, el.dark);
+  g.fillStyle = body;
+  g.fillRect(0, 0, s, s);
+  if (el.glow) {
+    const glow = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s * 0.5);
+    glow.addColorStop(0, el.glow);
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = glow;
+    g.fillRect(0, 0, s, s);
+  }
+
+  el.texture(g, s, rand);
+
+  // Bisel: faces claras em cima/esquerda, escuras embaixo/direita
+  poly(g, [[0, 0], [s, 0], [ix1, iy0], [ix0, iy0]], "rgba(255,255,255,0.30)");
+  poly(g, [[0, 0], [ix0, iy0], [ix0, iy1], [0, s]], "rgba(255,255,255,0.14)");
+  poly(g, [[s, 0], [s, s], [ix1, iy1], [ix1, iy0]], "rgba(0,0,0,0.22)");
+  poly(g, [[0, s], [ix0, iy1], [ix1, iy1], [s, s]], "rgba(0,0,0,0.36)");
+
+  // Painel interno rebaixado: sombra em cima/esquerda, luz embaixo/direita
+  g.lineWidth = Math.max(1, s * 0.014);
+  g.strokeStyle = "rgba(0,0,0,0.35)";
+  g.beginPath(); g.moveTo(ix0, iy1); g.lineTo(ix0, iy0); g.lineTo(ix1, iy0); g.stroke();
+  g.strokeStyle = "rgba(255,255,255,0.25)";
+  g.beginPath(); g.moveTo(ix1, iy0); g.lineTo(ix1, iy1); g.lineTo(ix0, iy1); g.stroke();
+
+  if (el.icon) el.icon(g, s);
+
+  // Brilho superior
+  const gloss = g.createLinearGradient(0, y0, 0, s * 0.55);
+  gloss.addColorStop(0, "rgba(255,255,255,0.20)");
+  gloss.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gloss;
+  g.fillRect(0, 0, s, s * 0.55);
+  g.restore();
+
+  // Contorno
+  trace();
+  g.lineWidth = Math.max(1, s * 0.03);
+  g.strokeStyle = el.rim;
+  g.stroke();
+}
+
+// ---------- Helpers de desenho ----------
+
+function poly(g, pts, fill) {
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
+  g.fillStyle = fill;
+  g.fill();
+}
+
+function roundRectOn(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+/** Contorno lascado (pedra): pontos ao longo das bordas puxados para dentro. */
+function roughOutline(g, x0, y0, x1, y1, s, rand) {
+  const corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  const steps = 5, jitter = s * 0.035, chip = s * 0.06;
+  const pts = [];
+  for (let k = 0; k < 4; k++) {
+    const [ax, ay] = corners[k], [bx, by] = corners[(k + 1) % 4];
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const px = ax + (bx - ax) * t, py = ay + (by - ay) * t;
+      const dx = s / 2 - px, dy = s / 2 - py, len = Math.hypot(dx, dy);
+      const amt = i === 0 ? chip * (0.6 + rand() * 0.8) : rand() * jitter;
+      pts.push([px + (dx / len) * amt, py + (dy / len) * amt]);
+    }
+  }
+  return () => {
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+  };
+}
+
+/** Linha aleatória quebrada (rachaduras). */
+function crack(g, s, rand, segments, step) {
+  let x = rand() * s, y = rand() * s;
+  g.beginPath();
+  g.moveTo(x, y);
+  for (let k = 0; k < segments; k++) {
+    x += (rand() - 0.5) * s * step;
+    y += (rand() - 0.5) * s * step;
+    g.lineTo(x, y);
+  }
+}
+
+function softBlob(g, x, y, r, color) {
+  const rg = g.createRadialGradient(x, y, 0, x, y, r);
+  rg.addColorStop(0, color);
+  rg.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = rg;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/**
+ * Ícone em relevo a partir de um caminho preenchido: sulco escuro ao redor,
+ * sombra projetada, preenchimento, luz interna em cima/esquerda e
+ * sombra interna embaixo/direita.
+ */
+function emboss(g, s, path, fill, outline) {
+  const d = s * 0.018;
+  g.lineJoin = "round";
+  g.save(); path(); g.lineWidth = d * 3; g.strokeStyle = "rgba(0,0,0,0.28)"; g.stroke(); g.restore();
+  g.save(); g.translate(d * 0.6, d * 1.2); path(); g.fillStyle = "rgba(0,0,0,0.45)"; g.fill(); g.restore();
+  path(); g.fillStyle = fill; g.fill();
+  g.save();
+  path(); g.clip();
+  g.lineWidth = d * 1.6;
+  g.translate(d, d); path(); g.strokeStyle = "rgba(255,255,255,0.6)"; g.stroke();
+  g.translate(-2 * d, -2 * d); path(); g.strokeStyle = "rgba(0,0,0,0.35)"; g.stroke();
+  g.restore();
+  path(); g.lineWidth = Math.max(1, s * 0.012); g.strokeStyle = outline; g.stroke();
+}
+
+/** Ícone em relevo a partir de traços (vento, nervuras). */
+function embossStroke(g, s, path, color, outline, width) {
+  const d = s * 0.015;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  g.save(); g.translate(d * 0.6, d * 1.2); path(); g.strokeStyle = "rgba(10,50,80,0.35)"; g.lineWidth = width; g.stroke(); g.restore();
+  path(); g.strokeStyle = outline; g.lineWidth = width + s * 0.018; g.stroke();
+  path(); g.strokeStyle = color; g.lineWidth = width; g.stroke();
+}
+
+function sphere(g, x, y, r, [hi, mid, lo], outline) {
+  g.beginPath(); g.arc(x + r * 0.12, y + r * 0.22, r, 0, Math.PI * 2);
+  g.fillStyle = "rgba(0,0,0,0.45)"; g.fill();
+  const rg = g.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.05, x, y, r);
+  rg.addColorStop(0, hi); rg.addColorStop(0.55, mid); rg.addColorStop(1, lo);
+  g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+  g.fillStyle = rg; g.fill();
+  g.lineWidth = Math.max(1, r * 0.1); g.strokeStyle = outline; g.stroke();
+}
+
+// ---------- Texturas ----------
+
+function textureWater(g, s, rand) {
+  g.lineCap = "round";
+  for (let i = 0; i < 10; i++) {
+    crack(g, s, rand, 4, 0.35);
+    g.strokeStyle = i % 3 === 0 ? "rgba(0,30,80,0.35)" : "rgba(200,245,255,0.45)";
+    g.lineWidth = s * (0.008 + rand() * 0.01);
+    g.stroke();
+  }
+}
+
+function textureFire(g, s, rand) {
+  for (let i = 0; i < 7; i++) {
+    const y = rand() * s;
+    g.beginPath();
+    g.moveTo(-s * 0.1, y);
+    g.bezierCurveTo(s * 0.3, y + (rand() - 0.5) * s * 0.4, s * 0.7, y + (rand() - 0.5) * s * 0.4, s * 1.1, y + (rand() - 0.5) * s * 0.2);
+    g.strokeStyle = i % 2 ? "rgba(255,210,90,0.35)" : "rgba(110,15,0,0.30)";
+    g.lineWidth = s * (0.02 + rand() * 0.03);
+    g.stroke();
+  }
+  for (let i = 0; i < 16; i++) {
+    g.beginPath();
+    g.arc(rand() * s, rand() * s, s * (0.006 + rand() * 0.008), 0, Math.PI * 2);
+    g.fillStyle = "rgba(255,235,160,0.9)";
+    g.fill();
+  }
+}
+
+function textureStone(g, s, rand) {
+  for (let i = 0; i < 500; i++) {
+    const size = s * (0.008 + rand() * 0.018);
+    g.fillStyle = rand() < 0.5
+      ? `rgba(255,255,255,${0.05 + rand() * 0.12})`
+      : `rgba(0,0,0,${0.05 + rand() * 0.15})`;
+    g.fillRect(rand() * s, rand() * s, size, size);
+  }
+  softBlob(g, s * (0.55 + rand() * 0.3), s * (0.6 + rand() * 0.3), s * 0.35, "rgba(150,85,40,0.40)");
+  g.lineCap = "round";
+  for (let i = 0; i < 5; i++) {
+    crack(g, s, rand, 3, 0.4);
+    g.lineWidth = s * 0.012;
+    g.strokeStyle = "rgba(30,25,20,0.55)";
+    g.stroke();
+    g.save(); g.translate(s * 0.008, s * 0.008);
+    g.strokeStyle = "rgba(255,255,255,0.15)";
+    g.stroke();
+    g.restore();
+  }
+}
+
+function textureAir(g, s, rand) {
+  for (let i = 0; i < 14; i++) {
+    const x = rand() * s;
+    const y = rand() < 0.5 ? s * (0.7 + rand() * 0.35) : s * rand() * 0.35;
+    softBlob(g, x, y, s * (0.08 + rand() * 0.14), "rgba(255,255,255,0.75)");
+  }
+}
+
+function texturePlant(g, s, rand) {
+  for (let i = 0; i < 160; i++) {
+    g.beginPath();
+    g.arc(rand() * s, rand() * s, s * (0.015 + rand() * 0.05), 0, Math.PI * 2);
+    g.fillStyle = rand() < 0.55
+      ? `rgba(10,55,10,${0.12 + rand() * 0.18})`
+      : `rgba(190,255,110,${0.08 + rand() * 0.15})`;
+    g.fill();
+  }
+}
+
+function textureOrganic(g, s, rand) {
+  for (let i = 0; i < 220; i++) {
+    g.fillStyle = `rgba(255,255,255,${0.02 + rand() * 0.05})`;
+    g.fillRect(rand() * s, rand() * s, s * 0.012, s * 0.012);
+  }
+  const sheen = g.createLinearGradient(0, 0, s, s);
+  sheen.addColorStop(0.25, "rgba(255,255,255,0)");
+  sheen.addColorStop(0.4, "rgba(255,255,255,0.08)");
+  sheen.addColorStop(0.55, "rgba(255,255,255,0)");
+  g.fillStyle = sheen;
+  g.fillRect(0, 0, s, s);
+}
+
+// ---------- Ícones ----------
+
+function iconWater(g, s) {
+  const cx = s / 2, cy = s * 0.5, R = s * 0.26;
+  const drop = () => {
+    g.beginPath();
+    g.moveTo(cx, cy - R);
+    g.bezierCurveTo(cx + R * 0.15, cy - R * 0.6, cx + R * 0.72, cy - R * 0.05, cx + R * 0.72, cy + R * 0.38);
+    g.bezierCurveTo(cx + R * 0.72, cy + R * 0.8, cx + R * 0.38, cy + R * 1.02, cx, cy + R * 1.02);
+    g.bezierCurveTo(cx - R * 0.38, cy + R * 1.02, cx - R * 0.72, cy + R * 0.8, cx - R * 0.72, cy + R * 0.38);
+    g.bezierCurveTo(cx - R * 0.72, cy - R * 0.05, cx - R * 0.15, cy - R * 0.6, cx, cy - R);
+    g.closePath();
+  };
+  const fill = g.createRadialGradient(cx - R * 0.2, cy + R * 0.1, 0, cx, cy + R * 0.2, R * 1.1);
+  fill.addColorStop(0, "#e2f9ff");
+  fill.addColorStop(0.5, "#62c9f2");
+  fill.addColorStop(1, "#1a7fcf");
+  emboss(g, s, drop, fill, "#0b4a8c");
+  // Reflexo
+  g.beginPath();
+  g.ellipse(cx - R * 0.32, cy + R * 0.35, R * 0.11, R * 0.26, -0.3, 0, Math.PI * 2);
+  g.fillStyle = "rgba(255,255,255,0.8)";
+  g.fill();
+}
+
+function iconFire(g, s) {
+  const cx = s / 2, cy = s * 0.5, R = s * 0.29;
+  const flame = (scale, oy) => () => {
+    const p = (x, y) => [cx + x * scale * R, cy + (y * scale + oy) * R];
+    g.beginPath();
+    g.moveTo(...p(0, 0.95));
+    g.bezierCurveTo(...p(-0.62, 0.95), ...p(-0.82, 0.42), ...p(-0.55, -0.02));
+    g.bezierCurveTo(...p(-0.45, -0.2), ...p(-0.38, -0.3), ...p(-0.42, -0.55));
+    g.bezierCurveTo(...p(-0.2, -0.38), ...p(-0.12, -0.25), ...p(-0.1, -0.18));
+    g.bezierCurveTo(...p(-0.18, -0.55), ...p(0.02, -0.85), ...p(0.12, -1.0));
+    g.bezierCurveTo(...p(0.2, -0.72), ...p(0.42, -0.55), ...p(0.48, -0.3));
+    g.bezierCurveTo(...p(0.52, -0.38), ...p(0.58, -0.46), ...p(0.62, -0.58));
+    g.bezierCurveTo(...p(0.88, -0.12), ...p(0.82, 0.5), ...p(0.55, 0.8));
+    g.bezierCurveTo(...p(0.4, 0.92), ...p(0.2, 0.95), ...p(0, 0.95));
+    g.closePath();
+  };
+  const outer = g.createLinearGradient(0, cy - R, 0, cy + R);
+  outer.addColorStop(0, "#ffb347");
+  outer.addColorStop(0.6, "#f2621a");
+  outer.addColorStop(1, "#c8300a");
+  emboss(g, s, flame(1, 0), outer, "#6e1404");
+  const inner = g.createLinearGradient(0, cy - R * 0.3, 0, cy + R);
+  inner.addColorStop(0, "#fff4b8");
+  inner.addColorStop(1, "#ffb43a");
+  emboss(g, s, flame(0.55, 0.36), inner, "#c2550e");
+}
+
+function iconAir(g, s) {
+  const cx = s / 2, cy = s * 0.53, R = s * 0.3;
+  const P = (x, y) => [cx + x * R, cy + y * R];
+  const wind = () => {
+    g.beginPath();
+    // Linha de cima, enrolando para cima
+    g.moveTo(...P(-0.95, -0.1));
+    g.bezierCurveTo(...P(-0.4, -0.2), ...P(0.1, -0.05), ...P(0.35, -0.25));
+    g.bezierCurveTo(...P(0.55, -0.42), ...P(0.3, -0.65), ...P(0.12, -0.48));
+    // Linha do meio, longa
+    g.moveTo(...P(-0.85, 0.15));
+    g.bezierCurveTo(...P(-0.3, 0.08), ...P(0.3, 0.2), ...P(0.75, 0.05));
+    // Linha de baixo, enrolando para baixo
+    g.moveTo(...P(-0.7, 0.38));
+    g.bezierCurveTo(...P(-0.2, 0.35), ...P(0.25, 0.4), ...P(0.35, 0.62));
+    g.bezierCurveTo(...P(0.42, 0.82), ...P(0.15, 0.9), ...P(0.05, 0.75));
+  };
+  embossStroke(g, s, wind, "#ffffff", "#4f9fc0", s * 0.045);
+
+  // Pena no canto superior direito
+  const [fx, fy] = P(0.58, -0.55);
+  const L = R * 0.5, W = R * 0.18;
+  const feather = () => {
+    g.save();
+    g.translate(fx, fy);
+    g.rotate(Math.PI / 4);
+    g.beginPath();
+    g.moveTo(0, -L);
+    g.bezierCurveTo(W, -L * 0.6, W, L * 0.4, 0, L * 0.7);
+    g.bezierCurveTo(-W, L * 0.4, -W, -L * 0.6, 0, -L);
+    g.closePath();
+    g.restore();
+  };
+  emboss(g, s, feather, "#f4fbff", "#4f9fc0");
+  const shaft = () => {
+    g.save();
+    g.translate(fx, fy);
+    g.rotate(Math.PI / 4);
+    g.beginPath();
+    g.moveTo(0, -L * 0.8);
+    g.lineTo(0, L * 1.05);
+    g.restore();
+  };
+  shaft();
+  g.lineWidth = Math.max(1, s * 0.012);
+  g.strokeStyle = "#4f9fc0";
+  g.stroke();
+}
+
+function iconPlant(g, s) {
+  const cx = s / 2, cy = s * 0.5, R = s * 0.3;
+  // Folha de bordo: 5 lobos pontudos (ângulo a partir de "para cima", tamanho),
+  // cada um com um dente lateral, e reentrâncias entre eles
+  const LOBES = [[-125, 0.62], [-60, 0.9], [0, 1], [60, 0.9], [125, 0.62]];
+  const polar = (deg, r) => {
+    const a = (deg * Math.PI) / 180;
+    return [cx + Math.sin(a) * r * R, cy - Math.cos(a) * r * R];
+  };
+  const leafPoints = [polar(-180, 0.2)];
+  LOBES.forEach(([a, L], i) => {
+    leafPoints.push(
+      polar(a - 24, 0.6 * L), polar(a - 16, 0.8 * L), polar(a - 10, 0.68 * L),
+      polar(a, L),
+      polar(a + 10, 0.68 * L), polar(a + 16, 0.8 * L), polar(a + 24, 0.6 * L));
+    if (i < LOBES.length - 1) leafPoints.push(polar((a + LOBES[i + 1][0]) / 2, 0.45));
+  });
+  leafPoints.push(polar(180, 0.2));
+  const leaf = () => {
+    g.beginPath();
+    leafPoints.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+  };
+  // Talo (atrás da folha)
+  const stem = () => {
+    g.beginPath();
+    g.moveTo(cx, cy + R * 0.2);
+    g.quadraticCurveTo(cx + R * 0.02, cy + R * 0.7, cx + R * 0.1, cy + R * 1.08);
+  };
+  embossStroke(g, s, stem, "#3c8a2c", "#123d10", s * 0.03);
+
+  const fill = g.createRadialGradient(cx - R * 0.2, cy - R * 0.2, 0, cx, cy, R * 1.05);
+  fill.addColorStop(0, "#c2f597");
+  fill.addColorStop(0.55, "#4fae37");
+  fill.addColorStop(1, "#22691c");
+  emboss(g, s, leaf, fill, "#123d10");
+
+  // Nervuras
+  g.lineCap = "round";
+  g.lineWidth = Math.max(1, s * 0.012);
+  g.strokeStyle = "rgba(20,70,15,0.65)";
+  const base = [cx, cy + R * 0.22];
+  for (const [deg, L] of LOBES) {
+    g.beginPath();
+    g.moveTo(...base);
+    g.lineTo(...polar(deg, L * 0.8));
+    g.stroke();
+  }
+}
+
+function iconOrganic(g, s) {
+  const cx = s / 2, cy = s * 0.5, R = s * 0.27;
+  const P = (x, y) => [cx + x * R, cy + y * R];
+  const carbons = [P(-0.42, 0), P(0.42, 0)];
+  const hydrogens = [
+    [0, P(-0.7, -0.66)], [0, P(-1.0, 0.04)], [0, P(-0.7, 0.7)],
+    [1, P(0.7, -0.66)],  [1, P(1.0, 0.04)],  [1, P(0.7, 0.7)],
+  ];
+  // Ligações (bastões)
+  const bonds = [[carbons[0], carbons[1]], ...hydrogens.map(([c, h]) => [carbons[c], h])];
+  g.lineCap = "round";
+  for (const [lw, color] of [[R * 0.16, "#0c0e10"], [R * 0.09, "#c9d2d8"], [R * 0.03, "rgba(255,255,255,0.8)"]]) {
+    g.lineWidth = lw;
+    g.strokeStyle = color;
+    for (const [[ax, ay], [bx, by]] of bonds) {
+      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+    }
+  }
+  // Esferas
+  for (const [, [x, y]] of hydrogens) sphere(g, x, y, R * 0.18, ["#ffffff", "#dfe5e8", "#8a959c"], "#3a4045");
+  for (const [x, y] of carbons) sphere(g, x, y, R * 0.26, ["#a9c2c2", "#3c5456", "#121c1d"], "#060909");
+}
+
+/* =========================================================
    RENDER
    ========================================================= */
-const canvas = document.getElementById("board");
+const canvas = $("board");
 const ctx = canvas.getContext("2d");
-canvas.width = CONFIG.COLS * CONFIG.CELL;
-canvas.height = CONFIG.ROWS * CONFIG.CELL;
+canvas.width = Math.round(BOARD_W * DPR);
+canvas.height = Math.round(BOARD_H * DPR);
+canvas.style.width = BOARD_W + "px";
+
+// Sprites dos elementos, gerados uma vez na resolução real da tela
+const SPRITE_PX = Math.round(CONFIG.CELL * DPR);
+const sprites = ELEMENTS.map((el, i) => (el ? buildSprite(el, SPRITE_PX, 1000 + i * 77) : null));
 
 const ui = {
-  timer: document.getElementById("timer"),
-  score: document.getElementById("score"),
-  bestChain: document.getElementById("bestChain"),
-  speed: document.getElementById("speed"),
-  chainMsg: document.getElementById("chainMsg"),
+  timer: $("timer"),
+  score: $("score"),
+  bestChain: $("bestChain"),
+  speed: $("speed"),
+  chainMsg: $("chainMsg"),
+  pauseOverlay: $("pauseOverlay"),
+  gameOverOverlay: $("gameOverOverlay"),
+  goScore: $("goScore"),
+  goTime: $("goTime"),
+  goChain: $("goChain"),
 };
 
 function formatTime(ms) {
@@ -640,12 +1515,40 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
+const easeOutQuad = (t) => 1 - (1 - t) * (1 - t);
+
+/** Posição visual (em células) do bloco da grade (x, y), considerando animações. */
+function visualPos(x, y) {
+  let vx = x, vy = y;
+  if (state.phase === Phase.SWAPPING && state.swap && y === state.swap.y) {
+    const p = easeOutQuad(1 - Math.max(0, state.phaseTimer) / swapMs());
+    if (x === state.swap.x) vx = x + 1 - p;          // veio da direita
+    else if (x === state.swap.x + 1) vx = x - 1 + p; // veio da esquerda
+  }
+  if (state.phase === Phase.FALLING && state.fall) {
+    const d = state.fall.dist[y][x];
+    if (d) vy = y - Math.max(0, d - fallTravel(state.fall.elapsed));
+  }
+  return { vx, vy };
+}
+
+/** Aparência de um bloco sendo removido: pisca, depois encolhe e some. */
+function clearingLook(time) {
+  const p = 1 - Math.max(0, state.phaseTimer) / clearMs();
+  const B = CONFIG.CLEAR_BLINK_PART;
+  if (p < B) return { flash: Math.floor(time / 70) % 2 === 0 ? 0.85 : 0 };
+  const q = (p - B) / (1 - B);
+  return { flash: 0.6 * (1 - q), scale: 1 - q * 0.9, alpha: 1 - q };
+}
+
 function render() {
   const time = state.clock; // relógio do jogo: congela durante o pause
   const S = CONFIG.CELL;
   // Deslocamento vertical da pilha (em pixels) conforme a próxima linha surge
   const offset = state.riseProgress * S;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, BOARD_W, BOARD_H);
 
   // Aviso de perigo: brilho vermelho no topo quando a pilha está quase lá
   if (isInDanger() && state.phase !== Phase.GAME_OVER) {
@@ -654,43 +1557,44 @@ function render() {
     grad.addColorStop(0, `rgba(255,60,70,${alpha})`);
     grad.addColorStop(1, "rgba(255,60,70,0)");
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, S * 2);
+    ctx.fillRect(0, 0, BOARD_W, S * 2);
   }
 
   // Linhas de fundo (sobem junto com a pilha)
   ctx.strokeStyle = "#1b1f2c";
   ctx.lineWidth = 1;
-  for (let x = 1; x < CONFIG.COLS; x++) line(x * S + 0.5, 0, x * S + 0.5, canvas.height);
+  for (let x = 1; x < CONFIG.COLS; x++) line(x * S + 0.5, 0, x * S + 0.5, BOARD_H);
   for (let y = 1; y <= CONFIG.ROWS; y++) {
     const py = Math.round(y * S - offset) + 0.5;
-    line(0, py, canvas.width, py);
+    line(0, py, BOARD_W, py);
   }
 
   // Blocos
   const clearingSet = new Set(state.clearing.map(c => c.y * CONFIG.COLS + c.x));
-  const blinkOn = Math.floor(time / 70) % 2 === 0;
   for (let y = 0; y < CONFIG.ROWS; y++) {
     for (let x = 0; x < CONFIG.COLS; x++) {
       const type = state.grid[y][x];
       if (type === EMPTY) continue;
-      const isClearing = clearingSet.has(y * CONFIG.COLS + x);
-      drawBlock(x, y * S - offset, type, isClearing && blinkOn, false);
+      const { vx, vy } = visualPos(x, y);
+      const look = clearingSet.has(y * CONFIG.COLS + x) ? clearingLook(time) : undefined;
+      drawBlock(type, vx * S, vy * S - offset, look);
     }
   }
 
   // Próxima linha surgindo (escurecida, ainda não jogável)
   for (let x = 0; x < CONFIG.COLS; x++) {
-    drawBlock(x, CONFIG.ROWS * S - offset, state.nextRow[x], false, true);
+    drawBlock(state.nextRow[x], x * S, CONFIG.ROWS * S - offset, { shade: 0.6 });
   }
 
-  drawCursor(time, offset);
-
+  if (state.phase !== Phase.GAME_OVER) drawCursor(time, offset);
   if (isTurbo()) drawTurboTag();
   if (state.banner) drawBanner(state.banner, time);
-  if (state.phase === Phase.GAME_OVER) drawGameOver();
-  else if (state.paused) drawPaused();
 
-  // Painel lateral
+  syncHud();
+}
+
+/** Atualiza painel lateral e overlays HTML (pause / game over). */
+function syncHud() {
   ui.timer.textContent = formatTime(state.elapsedMs);
   ui.score.textContent = state.score;
   ui.bestChain.textContent = state.bestChain;
@@ -699,80 +1603,43 @@ function render() {
   ui.speed.className = isTurbo() ? "value turbo"
     : isFrenzy() ? "value frenzy" : rowsPerMin >= 20 ? "value fast" : "value";
   ui.chainMsg.textContent = state.message;
+
+  const over = state.phase === Phase.GAME_OVER;
+  ui.pauseOverlay.hidden = !(state.paused && !over);
+  if (ui.gameOverOverlay.hidden === over) {
+    ui.gameOverOverlay.hidden = !over;
+    if (over) {
+      ui.goScore.textContent = state.score;
+      ui.goTime.textContent = formatTime(state.elapsedMs);
+      ui.goChain.textContent = state.bestChain;
+    }
+  }
 }
 
 function line(x1, y1, x2, y2) {
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
 }
 
-/** Desenha um bloco na coluna x, na posição vertical em pixels pixelY. */
-function drawBlock(x, pixelY, type, flash, dim) {
+/**
+ * Desenha o sprite de um elemento com o canto superior esquerdo em (px, py).
+ * Opções: alpha (transparência), flash (brilho branco 0..1),
+ * scale (encolher no centro), shade (escurecer 0..1).
+ */
+function drawBlock(type, px, py, { alpha = 1, flash = 0, scale = 1, shade = 0 } = {}) {
   const S = CONFIG.CELL;
-  const pad = 2;
-  const px = x * S + pad, py = pixelY + pad, size = S - pad * 2;
-  const def = BLOCK_TYPES[type];
-
+  const size = S * scale, off = (S - size) / 2;
+  const x = px + off, y = py + off;
   ctx.save();
-  if (dim) ctx.globalAlpha = 0.35;
-
-  ctx.fillStyle = flash ? "#ffffff" : def.color;
-  roundRect(px, py, size, size, 6);
-  ctx.fill();
-
-  // Borda escura + brilho superior simples
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(0,0,0,0.45)";
-  ctx.stroke();
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  roundRect(px + 3, py + 3, size - 6, size * 0.35, 4);
-  ctx.fill();
-
-  if (!flash) drawSymbol(def.symbol, px + size / 2, py + size / 2, size * 0.26);
-  ctx.restore();
-}
-
-function drawSymbol(symbol, cx, cy, r) {
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  switch (symbol) {
-    case "circle":
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      break;
-    case "square":
-      ctx.rect(cx - r * 0.85, cy - r * 0.85, r * 1.7, r * 1.7);
-      break;
-    case "triangle":
-      ctx.moveTo(cx, cy - r);
-      ctx.lineTo(cx + r, cy + r * 0.8);
-      ctx.lineTo(cx - r, cy + r * 0.8);
-      ctx.closePath();
-      break;
-    case "diamond":
-      ctx.moveTo(cx, cy - r * 1.1);
-      ctx.lineTo(cx + r, cy);
-      ctx.lineTo(cx, cy + r * 1.1);
-      ctx.lineTo(cx - r, cy);
-      ctx.closePath();
-      break;
-    case "star":
-      for (let i = 0; i < 10; i++) {
-        const rad = i % 2 === 0 ? r * 1.1 : r * 0.45;
-        const a = -Math.PI / 2 + (i * Math.PI) / 5;
-        const px = cx + Math.cos(a) * rad, py = cy + Math.sin(a) * rad;
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      break;
-    case "heart":
-      ctx.moveTo(cx, cy + r);
-      ctx.bezierCurveTo(cx - r * 1.4, cy, cx - r * 0.8, cy - r * 1.2, cx, cy - r * 0.4);
-      ctx.bezierCurveTo(cx + r * 0.8, cy - r * 1.2, cx + r * 1.4, cy, cx, cy + r);
-      break;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(sprites[type], x, y, size, size);
+  const overlay = flash > 0 ? ["#ffffff", flash] : shade > 0 ? ["#05060a", shade] : null;
+  if (overlay) {
+    ctx.globalAlpha = alpha * overlay[1];
+    ctx.fillStyle = overlay[0];
+    roundRect(x + size * 0.05, y + size * 0.05, size * 0.9, size * 0.9, size * 0.08);
+    ctx.fill();
   }
-  ctx.fill();
-  ctx.stroke();
+  ctx.restore();
 }
 
 function drawCursor(time, offset) {
@@ -790,75 +1657,47 @@ function drawCursor(time, offset) {
 }
 
 function drawBanner(text, time) {
-  const cy = canvas.height * 0.4;
+  const cy = BOARD_H * 0.4;
   ctx.save();
   ctx.fillStyle = "rgba(12,14,21,0.75)";
-  ctx.fillRect(0, cy - 30, canvas.width, 60);
-  ctx.font = "bold 26px system-ui, sans-serif";
+  ctx.fillRect(0, cy - 30, BOARD_W, 60);
+  ctx.font = '28px "Lilita One", system-ui, sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const blink = Math.floor(time / 180) % 2 === 0;
   ctx.fillStyle = isFrenzy() ? (blink ? "#ff5a64" : "#ffffff") : (blink ? "#ffd84a" : "#ffffff");
-  ctx.fillText(text, canvas.width / 2, cy);
+  ctx.fillText(text, BOARD_W / 2, cy);
   ctx.restore();
 }
 
-function drawPaused() {
-  ctx.save();
-  ctx.fillStyle = "rgba(8,9,14,0.82)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const cx = canvas.width / 2, cy = canvas.height / 2;
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 40px system-ui, sans-serif";
-  ctx.fillText("PAUSADO", cx, cy - 14);
-  ctx.fillStyle = "#8a90a8";
-  ctx.font = "15px system-ui, sans-serif";
-  ctx.fillText("Esc ou P para continuar", cx, cy + 24);
-  ctx.restore();
-}
-
-/** Etiqueta discreta no canto inferior enquanto o turbo está ativo. */
+/** Etiqueta discreta no canto superior enquanto o turbo está ativo. */
 function drawTurboTag() {
   ctx.save();
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "top";
   ctx.fillStyle = "rgba(12,14,21,0.75)";
-  ctx.fillRect(canvas.width - 84, 6, 78, 22);
+  ctx.fillRect(BOARD_W - 84, 6, 78, 22);
   ctx.fillStyle = "#7fd6ff";
-  ctx.fillText("▲▲ TURBO", canvas.width - 12, 10);
-  ctx.restore();
-}
-
-function drawGameOver() {
-  ctx.save();
-  ctx.fillStyle = "rgba(8,9,14,0.78)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const cx = canvas.width / 2, cy = canvas.height / 2;
-  ctx.fillStyle = "#ff5a64";
-  ctx.font = "bold 40px system-ui, sans-serif";
-  ctx.fillText("GAME OVER", cx, cy - 40);
-  ctx.fillStyle = "#e8eaf2";
-  ctx.font = "600 18px system-ui, sans-serif";
-  ctx.fillText(`${state.score} pontos · ${formatTime(state.elapsedMs)}`, cx, cy + 4);
-  ctx.fillStyle = "#8a90a8";
-  ctx.font = "15px system-ui, sans-serif";
-  ctx.fillText("Aperte R para jogar de novo", cx, cy + 36);
+  ctx.fillText("▲▲ TURBO", BOARD_W - 12, 10);
   ctx.restore();
 }
 
 function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+  roundRectOn(ctx, x, y, w, h, r);
+}
+
+/** Desenha os 6 elementos na vitrine do menu principal. */
+function renderMenuTiles() {
+  const host = $("menuTiles");
+  const px = Math.round(40 * DPR);
+  for (let i = 1; i <= NUM_COLORS; i++) {
+    const c = document.createElement("canvas");
+    c.width = c.height = px;
+    c.title = ELEMENTS[i].name;
+    c.getContext("2d").drawImage(sprites[i], 0, 0, px, px);
+    host.appendChild(c);
+  }
 }
 
 /* =========================================================
@@ -869,8 +1708,10 @@ function loop(time) {
   // Limita dt para a pilha não "pular" várias linhas ao voltar de outra aba
   const dt = lastTime ? Math.min(time - lastTime, 100) : 0;
   lastTime = time;
-  update(dt);
-  render();
+  if (currentScreen === Screen.GAME && state) {
+    update(dt);
+    render();
+  }
   requestAnimationFrame(loop);
 }
 
@@ -881,8 +1722,8 @@ function restart() {
   state = createInitialState();
 }
 
-restart();
-canvas.focus();
+renderMenuTiles();
+showScreen(Screen.MENU);
 requestAnimationFrame(loop);
 </script>
 </body>
