@@ -308,11 +308,15 @@
   .char-grid {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));   /* colunas iguais, independentes do sprite */
     gap: 10px;
   }
   @media (min-width: 820px) {
-    .char-grid { grid-template-columns: repeat(8, 1fr); }
+    .char-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  }
+  @media (max-width: 819px) {
+    .char-card { height: 152px; }
+    .char-card .char-art { height: 130px; }
   }
   .char-card {
     position: relative;
@@ -324,6 +328,7 @@
     display: grid;
     place-items: end center;
     height: 178px;
+    overflow: visible;
   }
   .char-card:hover, .char-card:focus-visible { outline: none; border-color: var(--accent); background: #2f3450; }
   .char-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -341,7 +346,9 @@
     display: grid;
     place-items: center;
   }
-  .char-art { height: 156px; max-width: 100%; object-fit: contain; display: block; }
+  /* Todos com a mesma altura: sprites mais largos (punho erguido, por exemplo) podem
+     passar um pouco da borda do cartão em vez de encolher o personagem inteiro */
+  .char-art { height: 156px; width: auto; max-width: none; display: block; }
   .char-placeholder {
     height: 150px;
     width: 76px;
