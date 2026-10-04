@@ -140,9 +140,12 @@
 
   /* ---------- Jogo ---------- */
   #gameScreen { flex-wrap: wrap; align-items: flex-start; gap: 24px; }
+  .arena { position: relative; display: flex; gap: 16px; align-items: flex-start; max-width: 100%; }
+  .board-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .board-wrap { position: relative; max-width: 100%; }
-  #board {
+  .board-canvas {
     display: block;
+    width: 308px;
     max-width: 100%;
     height: auto;
     background: #0c0e15;
@@ -150,6 +153,38 @@
     border-radius: 6px;
   }
   #board:focus { outline: none; border-color: #5a6390; }
+  /* Versus: dois tabuleiros lado a lado, reduzidos em telas estreitas */
+  .arena.versus .board-canvas { width: min(308px, calc((100vw - 72px) / 2)); }
+  .board-col.p2 .board-canvas { border-color: #6b4a3a; }
+  .board-hud {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 60px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  .board-col.p2 .board-hud { flex-direction: row-reverse; text-align: right; }
+  .hud-art { position: relative; width: 34px; height: 50px; flex: none; }
+  .hud-art > * { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; width: auto; max-width: none; }
+  .hud-art .char-placeholder { width: 30px; font-size: 14px; border-radius: 14px 14px 6px 6px; }
+  .hud-art .char-art { height: 100%; }
+  .hud-info { min-width: 0; }
+  .hud-name { font-family: var(--display); font-size: 16px; letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+  .hud-tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .hud-crystal { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .board-col.p2 .hud-crystal { margin-left: 0; margin-right: auto; align-items: flex-start; }
+  .crystal-mini { display: grid; gap: 1px; min-height: 9px; }
+  .crystal-mini i { display: block; width: 8px; height: 8px; border-radius: 2px; border: 1px solid rgba(255,255,255,.7); }
+  .crystal-mini.empty { color: var(--muted); font-size: 11px; }
+  .crystal-bar { width: 56px; height: 4px; border-radius: 2px; background: #2c3044; overflow: hidden; }
+  .crystal-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+  @media (max-width: 560px) {
+    .hud-art { display: none; }
+    .hud-name { font-size: 13px; max-width: 70px; }
+  }
+  .overlay h2.win { color: #5fe07a; }
   .overlay {
     position: absolute;
     inset: 3px;
@@ -471,6 +506,7 @@
       <div class="tiles" id="menuTiles" aria-hidden="true"></div>
       <nav class="menu-list" id="menuList">
         <button class="menu-btn primary" id="btnSingle">Single Player <span aria-hidden="true">▶</span></button>
+        <button class="menu-btn" id="btnVersus">Versus vs IA <span aria-hidden="true">▶</span></button>
         <button class="menu-btn" disabled>Multiplayer <span class="badge">Em breve</span></button>
         <button class="menu-btn" id="btnOptions">Opções / Créditos</button>
       </nav>
@@ -489,6 +525,22 @@
       </nav>
       <div class="actions">
         <button class="menu-btn" id="btnSingleBack">Voltar <kbd>Esc</kbd></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= VERSUS VS IA ======================= -->
+  <section id="versusScreen" class="screen" hidden>
+    <div class="menu-card">
+      <h2 class="opt-title">Versus vs IA</h2>
+      <p class="step-hint">Escolha a dificuldade do adversário</p>
+      <nav class="menu-list" id="aiLevelList">
+        <button class="menu-btn" data-level="easy">Fácil <span class="badge">Lento e erra mais</span></button>
+        <button class="menu-btn" data-level="normal">Normal <span class="badge">Monta chains</span></button>
+        <button class="menu-btn" data-level="hard">Difícil <span class="badge">Rápido e calcula</span></button>
+      </nav>
+      <div class="actions">
+        <button class="menu-btn" id="btnVersusBack">Voltar <kbd>Esc</kbd></button>
       </div>
     </div>
   </section>
@@ -646,8 +698,35 @@
 
   <!-- ======================= JOGO (ENDLESS) ======================= -->
   <section id="gameScreen" class="screen" hidden>
-    <div class="board-wrap">
-      <canvas id="board" tabindex="0" aria-label="Tabuleiro do jogo"></canvas>
+    <div class="arena" id="arena">
+      <!-- Tabuleiro do jogador (esquerda) -->
+      <div class="board-col p1" id="p1Col">
+        <div class="board-hud" id="p1Hud" hidden>
+          <div class="hud-art"></div>
+          <div class="hud-info"><div class="hud-name"></div><div class="hud-tag">Você</div></div>
+          <div class="hud-crystal" title="Cristal sendo montado">
+            <div class="crystal-mini"></div>
+            <div class="crystal-bar"><span></span></div>
+          </div>
+        </div>
+        <div class="board-wrap">
+          <canvas id="board" class="board-canvas" tabindex="0" aria-label="Seu tabuleiro"></canvas>
+        </div>
+      </div>
+      <!-- Tabuleiro da IA (direita, espelhado) -->
+      <div class="board-col p2" id="p2Col" hidden>
+        <div class="board-hud" id="p2Hud">
+          <div class="hud-art"></div>
+          <div class="hud-info"><div class="hud-name"></div><div class="hud-tag">IA</div></div>
+          <div class="hud-crystal" title="Cristal sendo montado">
+            <div class="crystal-mini"></div>
+            <div class="crystal-bar"><span></span></div>
+          </div>
+        </div>
+        <div class="board-wrap">
+          <canvas id="board2" class="board-canvas" aria-label="Tabuleiro da IA"></canvas>
+        </div>
+      </div>
 
       <div class="overlay" id="pauseOverlay" hidden>
         <h2>PAUSADO</h2>
@@ -660,7 +739,7 @@
       </div>
 
       <div class="overlay" id="gameOverOverlay" hidden>
-        <h2 class="danger">GAME OVER</h2>
+        <h2 class="danger" id="goTitle">GAME OVER</h2>
         <dl class="summary">
           <dt>Pontos</dt><dd id="goScore">0</dd>
           <dt>Tempo</dt><dd id="goTime">00:00</dd>
@@ -750,6 +829,30 @@ const ANIM_PRESETS = {
 
 
 const EMPTY = 0;
+
+/* ---------- Cristais (o "ataque" do Versus) ---------- */
+const CRYSTAL_COMBO_WINDOW_MS = 1800;   // tempo para emendar outro clear 4+ no mesmo cristal
+const CRYSTAL_ECHO_WIDTH = 3;           // "eco": clear de 3 formado só pela gravidade
+const CRYSTAL_WIDTH_BY_CLEAR = { 4: 4, 5: 5 }; // clear de N painéis → largura (6+ usa a máxima)
+const CRYSTAL_MAX_WIDTH = 6;
+const CRYSTAL_MAX_HEIGHT = 4;           // cada clear 4+ extra na janela soma +1 linha
+const CRYSTAL_WARNING_MS = 1000;        // aviso "cristal chegando" antes de cair
+const CRYSTAL_BLOCKED_GRACE_MS = 2000;  // sem espaço no topo por esse tempo → a pilha estoura
+const CRYSTAL_BREAK_POINTS_PER_CELL = 20;
+const CRYSTAL_ID_BASE = 100;            // na grade, célula de cristal = CRYSTAL_ID_BASE + id do cristal
+
+/* ---------- IA ---------- */
+// moveMs: tempo entre passos do cursor · thinkMs: pausa antes de escolher a próxima jogada
+// errorChance: chance de escolher uma jogada pior · depth: 1 = só o clear imediato,
+// 2 = simula a cascata inteira (chains), 3 = cascata + olha uma segunda troca
+const AI_LEVELS = {
+  easy:   { label: "Fácil",   moveMs: 230, thinkMs: 650, errorChance: 0.25, depth: 1 },
+  normal: { label: "Normal",  moveMs: 140, thinkMs: 380, errorChance: 0.10, depth: 2 },
+  hard:   { label: "Difícil", moveMs: 85,  thinkMs: 170, errorChance: 0.03, depth: 3 },
+};
+// Nomes dos adversários (mesma ordem dos sprites char_01 … char_16)
+const CHARACTER_NAMES = ["Lia", "Bia", "Maya", "Nina", "Duda", "Zuri", "Yumi", "Iara",
+                         "Theo", "Davi", "Rafa", "Léo", "Bruno", "Caio", "Kenji", "Tauã"];
 const BOARD_W = CONFIG.COLS * CONFIG.CELL;
 const BOARD_H = CONFIG.ROWS * CONFIG.CELL;
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -791,6 +894,7 @@ function loadSettings() {
     musicVolume: 60,   // 0..100
     sfxOn: true,
     sfxVolume: 70,     // 0..100
+    aiLevel: "normal", // última dificuldade escolhida no Versus
   };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
@@ -803,6 +907,7 @@ function loadSettings() {
       musicVolume: percent(saved.musicVolume, defaults.musicVolume),
       sfxOn: flag(saved.sfxOn, defaults.sfxOn),
       sfxVolume: percent(saved.sfxVolume, defaults.sfxVolume),
+      aiLevel: saved.aiLevel in AI_LEVELS ? saved.aiLevel : defaults.aiLevel,
     };
   } catch {
     return defaults;
@@ -847,12 +952,20 @@ const SOUND_FILES = {
   uiClick:   ["ui_click.wav"],
   pause:     ["pause.wav"],
   unpause:   ["unpause.wav"],
+  crystalBreak:   ["crystal_break.wav"],
+  crystalSend:    ["crystal_send.wav"],
+  crystalLand:    ["crystal_land.wav"],
+  crystalWarning: ["crystal_warning.wav"],
+  victory:        ["victory.wav"],
 };
 const MUSIC_FILE = "music_endless.wav";
 const MUSIC_MIX = 0.6;        // a música fica um pouco abaixo dos efeitos
 const MUSIC_DUCK = 0.35;      // volume relativo da música com o jogo pausado
 const MUSIC_MENU_LEVEL = 0.6; // volume relativo da música nos menus
-const MAX_CHAIN_SOUND = 8;          // chains acima disso repetem o som da x8
+const MAX_CHAIN_SOUND = 8;
+const AI_AUDIBLE_SOUNDS = new Set(["crystalBreak", "crystalSend", "crystalLand", "chain2", "chain3",
+  "chain4", "chain5", "chain6", "chain7", "chain8"]);
+const AI_SOUND_VOLUME = 0.45;          // chains acima disso repetem o som da x8
 const FALL_MULTI_MIN_BLOCKS = 3;    // a partir de quantos blocos a queda usa o som "vários"
 const RISE_SOUND_MIN_GAP_MS = 400;  // evita metralhar o som de subida no turbo / modo frenético
 
@@ -912,7 +1025,12 @@ const Sound = {
    * Toca um efeito uma vez.
    * volume: multiplicador sobre o volume geral; gap: intervalo mínimo (ms) desde a última vez.
    */
-  play(name, { volume = 1, gap = 0 } = {}) {
+  play(name, { volume = 1, gap = 0, force = false } = {}) {
+    // Sons do tabuleiro da IA: só os importantes, mais baixos (senão vira barulho)
+    if (!force && typeof state !== "undefined" && state && state.isAI) {
+      if (!AI_AUDIBLE_SOUNDS.has(name)) return;
+      volume *= AI_SOUND_VOLUME;
+    }
     const v = this.volume() * volume;
     if (!this.started || v <= 0) return;
     const now = performance.now();
@@ -1132,13 +1250,37 @@ const Phase = {
   GAME_OVER: "gameover",
 };
 
+// `state` é sempre o tabuleiro "em foco": o loop troca entre jogador e IA
+// (useBoard) e, fora do loop, ele aponta para o tabuleiro do jogador.
 let state = null;
+let boards = [];          // tabuleiros da partida: [jogador] ou [jogador, IA]
 
-function createInitialState() {
-  const grid = createStartingGrid();
+const randomSeed = () => (Math.random() * 4294967296) >>> 0;
+
+/**
+ * Cria um tabuleiro. `seed` define as peças iniciais e as linhas novas:
+ * no Versus os dois lados usam a mesma semente (disputa justa).
+ */
+function createInitialState({ seed = randomSeed(), isAI = false, characterId = null, name = "" } = {}) {
+  const rowRng = mulberry32(seed);              // peças iniciais + linhas novas (igual nos dois lados)
+  const rng = mulberry32((seed ^ 0x9e3779b9) >>> 0); // correções e cristais quebrados
+  const grid = createStartingGrid(rowRng);
   return {
     grid,
-    nextRow: createNextRow(grid), // linha que está "nascendo" embaixo (prévia)
+    rowRng,
+    rng,
+    isAI,
+    characterId,
+    name,
+    opponent: null,         // tabuleiro adversário (Versus)
+    ai: isAI ? createAI() : null,
+    crystals: new Map(),    // id → { element }
+    nextCrystalId: 1,
+    pendingCrystal: null,   // cristal sendo montado: { element, w, h, timer }
+    incoming: [],           // cristais a caminho: { element, w, h, eta, blocked }
+    breaking: [],           // ids de cristais que quebram ao fim desta remoção
+    particles: [],
+    nextRow: createNextRow(rowRng), // linha que está "nascendo" embaixo (prévia)
     riseProgress: 0,        // 0..1: quanto da próxima linha já apareceu
     elapsedMs: 0,           // tempo de partida (para quando pausado)
     clock: 0,               // relógio das animações; também para no pause
@@ -1168,27 +1310,51 @@ function createEmptyGrid() {
   return Array.from({ length: CONFIG.ROWS }, () => new Array(CONFIG.COLS).fill(EMPTY));
 }
 
-function randInt(min, max) { // inclusivo
-  return min + Math.floor(Math.random() * (max - min + 1));
+function randInt(min, max, rng = Math.random) { // inclusivo
+  return min + Math.floor(rng() * (max - min + 1));
 }
 
-function randomColorExcept(forbidden) {
+function randomColorExcept(forbidden, rng = Math.random) {
   const options = [];
   for (let c = 1; c <= NUM_COLORS; c++) if (!forbidden.has(c)) options.push(c);
-  return options[randInt(0, options.length - 1)];
+  return options[randInt(0, options.length - 1, rng)];
+}
+
+// Tipos de célula: vazio, painel (1..NUM_COLORS) ou parte de um cristal
+const isPanel = (v) => v >= 1 && v <= NUM_COLORS;
+const isCrystal = (v) => v >= CRYSTAL_ID_BASE;
+const crystalIdOf = (v) => v - CRYSTAL_ID_BASE;
+
+/** Retângulo ocupado por cada cristal na grade: id → { x0, x1, y0, y1 }. */
+function crystalBounds(grid) {
+  const out = new Map();
+  for (let y = 0; y < CONFIG.ROWS; y++) {
+    for (let x = 0; x < CONFIG.COLS; x++) {
+      const v = grid[y][x];
+      if (!isCrystal(v)) continue;
+      const id = crystalIdOf(v);
+      const b = out.get(id);
+      if (!b) out.set(id, { x0: x, x1: x, y0: y, y1: y });
+      else {
+        b.x0 = Math.min(b.x0, x); b.x1 = Math.max(b.x1, x);
+        b.y0 = Math.min(b.y0, y); b.y1 = Math.max(b.y1, y);
+      }
+    }
+  }
+  return out;
 }
 
 /**
  * Gera a grade inicial: colunas com alturas aleatórias preenchidas de
  * baixo para cima, escolhendo cores que não criam matches iniciais.
  */
-function createStartingGrid() {
+function createStartingGrid(rng = Math.random) {
   const grid = createEmptyGrid();
   for (let x = 0; x < CONFIG.COLS; x++) {
-    const height = randInt(CONFIG.START_MIN_HEIGHT, CONFIG.START_MAX_HEIGHT);
+    const height = randInt(CONFIG.START_MIN_HEIGHT, CONFIG.START_MAX_HEIGHT, rng);
     for (let i = 0; i < height; i++) {
       const y = CONFIG.ROWS - 1 - i;
-      grid[y][x] = pickSafeColor(grid, x, y);
+      grid[y][x] = pickSafeColor(grid, x, y, rng);
     }
   }
   return grid;
@@ -1199,7 +1365,7 @@ function createStartingGrid() {
  * (dois à esquerda e dois abaixo — a ordem de preenchimento garante que
  * só esses podem existir).
  */
-function pickSafeColor(grid, x, y) {
+function pickSafeColor(grid, x, y, rng = Math.random) {
   const forbidden = new Set();
   if (x >= 2 && grid[y][x - 1] !== EMPTY && grid[y][x - 1] === grid[y][x - 2]) {
     forbidden.add(grid[y][x - 1]);
@@ -1207,7 +1373,7 @@ function pickSafeColor(grid, x, y) {
   if (y <= CONFIG.ROWS - 3 && grid[y + 1][x] !== EMPTY && grid[y + 1][x] === grid[y + 2][x]) {
     forbidden.add(grid[y + 1][x]);
   }
-  return randomColorExcept(forbidden);
+  return randomColorExcept(forbidden, rng);
 }
 
 /* =========================================================
@@ -1226,22 +1392,28 @@ function forbiddenForNewRow(row, x, grid) {
   if (at(x + 1) !== EMPTY && at(x + 1) === at(x + 2)) forbidden.add(at(x + 1));
   if (at(x - 1) !== EMPTY && at(x - 1) === at(x + 1)) forbidden.add(at(x - 1));
   // Vertical: as duas células que ficarão logo acima (fundo atual da grade)
-  const b1 = grid[CONFIG.ROWS - 1][x], b2 = grid[CONFIG.ROWS - 2][x];
-  if (b1 !== EMPTY && b1 === b2) forbidden.add(b1);
+  if (grid) {
+    const b1 = grid[CONFIG.ROWS - 1][x], b2 = grid[CONFIG.ROWS - 2][x];
+    if (isPanel(b1) && b1 === b2) forbidden.add(b1);
+  }
   return forbidden;
 }
 
-function createNextRow(grid) {
+/**
+ * Sorteia a próxima linha só com a regra horizontal: assim a sequência de
+ * linhas depende apenas da semente (igual nos dois tabuleiros do Versus).
+ */
+function createNextRow(rng) {
   const row = new Array(CONFIG.COLS).fill(EMPTY);
-  for (let x = 0; x < CONFIG.COLS; x++) row[x] = randomColorExcept(forbiddenForNewRow(row, x, grid));
+  for (let x = 0; x < CONFIG.COLS; x++) row[x] = randomColorExcept(forbiddenForNewRow(row, x, null), rng);
   return row;
 }
 
 /** Re-sorteia apenas as células da prévia que agora criariam match. */
-function fixNextRow(row, grid) {
+function fixNextRow(row, grid, rng) {
   for (let x = 0; x < CONFIG.COLS; x++) {
     const forbidden = forbiddenForNewRow(row, x, grid);
-    if (forbidden.has(row[x])) row[x] = randomColorExcept(forbidden);
+    if (forbidden.has(row[x])) row[x] = randomColorExcept(forbidden, rng);
   }
 }
 
@@ -1266,11 +1438,11 @@ function riseIntervalMs(t) {
 /** Intervalo efetivo agora: o normal da partida, ou o turbo se for mais rápido. */
 function currentRiseIntervalMs() {
   const normal = riseIntervalMs(state.elapsedMs);
-  return input.turbo ? Math.min(normal, CONFIG.TURBO_RISE_MS) : normal;
+  return input.turbo && !state.isAI ? Math.min(normal, CONFIG.TURBO_RISE_MS) : normal;
 }
 
 function isTurbo() {
-  return input.turbo && state.phase === Phase.IDLE && !state.paused;
+  return input.turbo && !state.isAI && state.phase === Phase.IDLE && !state.paused;
 }
 
 function isFrenzy() {
@@ -1285,13 +1457,15 @@ function pushRow() {
     gameOver();
     return;
   }
-  fixNextRow(state.nextRow, g);
+  fixNextRow(state.nextRow, g, state.rng);
   g.shift();
   g.push(state.nextRow);
-  state.nextRow = createNextRow(g);
+  state.nextRow = createNextRow(state.rowRng);
 
   // O cursor acompanha os blocos (sobe junto), limitado ao topo
   state.cursor.y = Math.max(0, state.cursor.y - 1);
+  if (state.ai && state.ai.plan) state.ai.plan.y -= 1; // a jogada planejada também subiu
+  for (const p of state.particles) p.y -= CONFIG.CELL;
   Sound.play("rise", { volume: 0.7, gap: RISE_SOUND_MIN_GAP_MS });
 }
 
@@ -1315,7 +1489,7 @@ function isInDanger() {
    Três telas: menu principal, opções e jogo.
    ========================================================= */
 const Screen = {
-  MENU: "menu", SINGLE: "single", CREATE: "create", MAP: "map",
+  MENU: "menu", SINGLE: "single", VERSUS: "versus", CREATE: "create", MAP: "map",
   OPTIONS: "options", CONTROLS: "controls", GAME: "game",
 };
 let currentScreen = Screen.MENU;
@@ -1327,6 +1501,7 @@ const screens = {
   [Screen.OPTIONS]: $("optionsScreen"),
   [Screen.CONTROLS]: $("controlsScreen"),
   [Screen.SINGLE]: $("singleScreen"),
+  [Screen.VERSUS]: $("versusScreen"),
   [Screen.CREATE]: $("createScreen"),
   [Screen.MAP]: $("mapScreen"),
   [Screen.GAME]: $("gameScreen"),
@@ -1341,6 +1516,12 @@ function showScreen(name) {
   input.turbo = false;
   if (name === Screen.MENU) $("btnSingle").focus();
   if (name === Screen.SINGLE) $("btnCampaign").focus();
+  if (name === Screen.VERSUS) {
+    for (const b of $("aiLevelList").querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", String(b.dataset.level === settings.aiLevel));
+    }
+    $("aiLevelList").querySelector(`[data-level="${settings.aiLevel}"]`).focus();
+  }
   if (name === Screen.MAP) {
     renderMap();
     screens[Screen.MAP].querySelector(".biome").focus();
@@ -1359,24 +1540,43 @@ function showScreen(name) {
   }
 }
 
-// Modo da partida atual: Endless avulso ou uma fase da Campanha (bioma)
-let match = { mode: "endless", biome: null };
+// Partida atual:
+//   endless  → um tabuleiro, solo
+//   campaign → bioma do mapa: Versus contra a IA com um personagem sorteado
+//   versus   → Versus vs IA pelo menu principal
+let match = { mode: "endless", biome: null, versus: false, aiLevel: "normal", opponentId: null, result: null };
+
+/** Adversário sorteado entre os 16 personagens, menos o do jogador. */
+function randomOpponentId() {
+  const ids = CHARACTERS.map(c => c.id).filter(id => !hero || id !== hero.id);
+  return ids[Math.floor(Math.random() * ids.length)];
+}
 
 function startEndless() {
-  match = { mode: "endless", biome: null };
+  match = { mode: "endless", biome: null, versus: false, aiLevel: settings.aiLevel, opponentId: null, result: null };
   startMatch();
 }
 
 function startCampaignMatch(biome) {
-  match = { mode: "campaign", biome };
-  startMatch(); // por enquanto, cada bioma é uma partida no modo Endless
+  match = { mode: "campaign", biome, versus: true, aiLevel: settings.aiLevel, opponentId: randomOpponentId(), result: null };
+  startMatch();
+}
+
+function startVersus(level) {
+  settings.aiLevel = level;
+  saveSettings();
+  match = { mode: "versus", biome: null, versus: true, aiLevel: level, opponentId: randomOpponentId(), result: null };
+  startMatch();
 }
 
 function startMatch() {
   const campaign = match.mode === "campaign";
-  $("matchTitle").textContent = campaign ? match.biome.name.toUpperCase() : "ENDLESS";
-  $("matchSub").hidden = !campaign;
-  $("matchSub").textContent = campaign ? `${hero.name} · Campanha` : "";
+  const levelLabel = AI_LEVELS[match.aiLevel].label;
+  $("matchTitle").textContent = campaign ? match.biome.name.toUpperCase()
+    : match.mode === "versus" ? "VERSUS" : "ENDLESS";
+  $("matchSub").hidden = !match.versus;
+  $("matchSub").textContent = campaign ? `${heroName()} · Campanha · IA ${levelLabel}`
+    : match.versus ? `vs ${CHARACTER_NAMES[match.opponentId - 1]} · IA ${levelLabel}` : "";
   document.querySelectorAll(".menu-target").forEach(el => {
     el.textContent = campaign ? "Voltar ao Mapa" : "Voltar ao Menu";
   });
@@ -1385,10 +1585,19 @@ function startMatch() {
   showScreen(Screen.GAME);
 }
 
-/** Sair da partida: volta ao mapa (Campanha) ou ao menu Single Player (Endless). */
+/** Sair da partida: Campanha → mapa · Versus → escolha de dificuldade · Endless → Single Player. */
 function goToMenu() {
   optionsReturn = Screen.MENU;
-  showScreen(match.mode === "campaign" ? Screen.MAP : Screen.SINGLE);
+  showScreen(match.mode === "campaign" ? Screen.MAP : match.mode === "versus" ? Screen.VERSUS : Screen.SINGLE);
+}
+
+/** A partida acabou? (no Versus, basta um dos tabuleiros estourar) */
+function matchOver() {
+  return boards.some(b => b.phase === Phase.GAME_OVER);
+}
+
+function setPausedAll(paused) {
+  for (const b of boards) b.paused = paused;
 }
 
 function openOptions(from) {
@@ -1405,6 +1614,7 @@ function goBack() {
   if (currentScreen === Screen.CONTROLS) showScreen(Screen.OPTIONS);
   else if (currentScreen === Screen.OPTIONS) closeOptions();
   else if (currentScreen === Screen.SINGLE) showScreen(Screen.MENU);
+  else if (currentScreen === Screen.VERSUS) showScreen(Screen.MENU);
   else if (currentScreen === Screen.CREATE) createBack();
   else if (currentScreen === Screen.MAP) showScreen(Screen.SINGLE);
 }
@@ -1452,6 +1662,11 @@ function bindSlider(id, key) {
 }
 
 $("btnSingle").addEventListener("click", () => showScreen(Screen.SINGLE));
+$("btnVersus").addEventListener("click", () => showScreen(Screen.VERSUS));
+$("btnVersusBack").addEventListener("click", () => showScreen(Screen.MENU));
+$("aiLevelList").querySelectorAll("button").forEach(b => {
+  b.addEventListener("click", () => startVersus(b.dataset.level));
+});
 $("btnSingleBack").addEventListener("click", () => showScreen(Screen.MENU));
 $("btnEndless").addEventListener("click", startEndless);
 $("btnCampaign").addEventListener("click", openCampaign);
@@ -1521,7 +1736,7 @@ const BIOMES = [
     icon: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-dasharray="2.6 2.63"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="2.6"/>' },
   { id: "fire",   name: "Fogo",     color: "#e8501f",
     icon: '<path d="M12 2c1 4 6.2 6.4 6.2 12.2a6.2 6.2 0 0 1-12.4 0c0-3 1.5-5.1 3-7 .3 2 1.2 3.3 2.3 3.6C10.9 7 11 4.6 12 2z" fill="currentColor"/>' },
-  { id: "fungi",  name: "Orgânico", sub: "Fungos", color: "#8e4fd8",
+  { id: "fungi",  name: "Vitalis", color: "#8e4fd8", // antigo "Orgânico (Fungos)"; o id continua "fungi"
     icon: '<path d="M2.5 12.2a9.5 8.4 0 0 1 19 0z" fill="currentColor"/><path d="M9.4 12.2h5.2l.9 7.8a1 1 0 0 1-1 1.1H9.5a1 1 0 0 1-1-1.1z" fill="currentColor"/><circle cx="8" cy="8.6" r="1.4" fill="rgba(0,0,0,.25)"/><circle cx="14.6" cy="7" r="1.1" fill="rgba(0,0,0,.25)"/>' },
   { id: "air",    name: "Ar",       color: "#2fb5d9",
     icon: '<path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>' },
@@ -1707,8 +1922,8 @@ document.addEventListener("keyup", (e) => input.keysDown.delete(e.code));
 function handleGameKey(e) {
   const actions = actionsFor("keyboard", e.code);
 
-  // Game Over: Enter (ou a tecla de trocar/reiniciar) joga de novo; Esc/M (ou pausar) vai ao menu
-  if (state.phase === Phase.GAME_OVER) {
+  // Fim de partida: Enter (ou a tecla de trocar/reiniciar) joga de novo; Esc/M (ou pausar) volta
+  if (matchOver()) {
     let fn = null;
     if (e.code === "Enter" || actions.includes("swap") || actions.includes("restart")) fn = restart;
     else if (e.code === "Escape" || e.code === "KeyM" || actions.includes("pause")) fn = goToMenu;
@@ -1817,8 +2032,8 @@ window.addEventListener("blur", () => {
 
 // Trocar de aba pausa o jogo automaticamente.
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && currentScreen === Screen.GAME && state && state.phase !== Phase.GAME_OVER) {
-    state.paused = true;
+  if (document.hidden && currentScreen === Screen.GAME && state && !matchOver()) {
+    setPausedAll(true);
   }
 });
 
@@ -1901,7 +2116,7 @@ function pollGamepad(now) {
   if (!fire.size && !fresh.size) return;
 
   // Jogando
-  if (currentScreen === Screen.GAME && state && state.phase !== Phase.GAME_OVER && !state.paused) {
+  if (currentScreen === Screen.GAME && state && !matchOver() && !state.paused) {
     for (const a of fire) runAction(a, false);
     return;
   }
@@ -1909,7 +2124,7 @@ function pollGamepad(now) {
   // Menus e janelas de pause / game over
   for (const a of fire) if (DIRECTIONS[a]) uiNavigate(a);
   if (currentScreen === Screen.GAME && state) {
-    if (state.phase === Phase.GAME_OVER) {
+    if (matchOver()) {
       if (fresh.has(PAD_BACK)) goToMenu();
       else if (fresh.has(PAD_START)) restart();
       else if (fresh.has(PAD_CONFIRM)) uiConfirm();
@@ -2106,8 +2321,8 @@ function renderHelp() {
 }
 
 function togglePause() {
-  if (state.phase === Phase.GAME_OVER) return;
-  state.paused = !state.paused;
+  if (matchOver()) return;
+  setPausedAll(!state.paused); // pausa (ou volta) os dois tabuleiros juntos
   Sound.play(state.paused ? "pause" : "unpause");
 }
 
@@ -2133,6 +2348,7 @@ function trySwap() {
   const g = state.grid;
   const a = g[y][x], b = g[y][x + 1];
   if (a === EMPTY && b === EMPTY) return;
+  if (isCrystal(a) || isCrystal(b)) return; // cristal não pode ser trocado
 
   g[y][x] = b;
   g[y][x + 1] = a;
@@ -2161,9 +2377,9 @@ function findMatches(grid) {
   for (let y = 0; y < CONFIG.ROWS; y++) {
     let runStart = 0;
     for (let x = 1; x <= CONFIG.COLS; x++) {
-      const same = x < CONFIG.COLS && grid[y][x] !== EMPTY && grid[y][x] === grid[y][runStart];
+      const same = x < CONFIG.COLS && isPanel(grid[y][x]) && grid[y][x] === grid[y][runStart];
       if (!same) {
-        if (grid[y][runStart] !== EMPTY && x - runStart >= CONFIG.MIN_MATCH) {
+        if (isPanel(grid[y][runStart]) && x - runStart >= CONFIG.MIN_MATCH) {
           for (let k = runStart; k < x; k++) marked[y][k] = true;
         }
         runStart = x;
@@ -2175,9 +2391,9 @@ function findMatches(grid) {
   for (let x = 0; x < CONFIG.COLS; x++) {
     let runStart = 0;
     for (let y = 1; y <= CONFIG.ROWS; y++) {
-      const same = y < CONFIG.ROWS && grid[y][x] !== EMPTY && grid[y][x] === grid[runStart][x];
+      const same = y < CONFIG.ROWS && isPanel(grid[y][x]) && grid[y][x] === grid[runStart][x];
       if (!same) {
-        if (grid[runStart][x] !== EMPTY && y - runStart >= CONFIG.MIN_MATCH) {
+        if (isPanel(grid[runStart][x]) && y - runStart >= CONFIG.MIN_MATCH) {
           for (let k = runStart; k < y; k++) marked[k][x] = true;
         }
         runStart = y;
@@ -2192,6 +2408,38 @@ function findMatches(grid) {
   return cells;
 }
 
+/**
+ * Separa as células combinadas em grupos (clears): células vizinhas do mesmo
+ * elemento formam um grupo. Ex.: um "L" de 5 painéis iguais é um clear de 5.
+ */
+function findGroups(grid, cells) {
+  const key = (x, y) => y * CONFIG.COLS + x;
+  const inMatch = new Set(cells.map(c => key(c.x, c.y)));
+  const seen = new Set();
+  const groups = [];
+  for (const c of cells) {
+    const k0 = key(c.x, c.y);
+    if (seen.has(k0)) continue;
+    const element = grid[c.y][c.x];
+    const group = { element, cells: [] };
+    const stack = [c];
+    seen.add(k0);
+    while (stack.length) {
+      const cur = stack.pop();
+      group.cells.push(cur);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cur.x + dx, ny = cur.y + dy, k = key(nx, ny);
+        if (inMatch.has(k) && !seen.has(k) && grid[ny][nx] === element) {
+          seen.add(k);
+          stack.push({ x: nx, y: ny });
+        }
+      }
+    }
+    groups.push(group);
+  }
+  return groups;
+}
+
 /* =========================================================
    GRAVITY
    Os blocos vão direto para a posição final na grade; a função
@@ -2199,21 +2447,41 @@ function findMatches(grid) {
    ========================================================= */
 function applyGravity(grid) {
   const dist = createEmptyGrid();
-  let max = 0;
-  for (let x = 0; x < CONFIG.COLS; x++) {
-    let writeY = CONFIG.ROWS - 1;
-    for (let y = CONFIG.ROWS - 1; y >= 0; y--) {
-      if (grid[y][x] !== EMPTY) {
-        if (y !== writeY) {
-          grid[writeY][x] = grid[y][x];
+  // Desce tudo uma casa por vez até nada mais se mexer: painéis caem sozinhos;
+  // um cristal só desce se toda a base dele estiver livre (cai como bloco).
+  let moved = true;
+  while (moved) {
+    moved = false;
+    for (let y = CONFIG.ROWS - 2; y >= 0; y--) {
+      for (let x = 0; x < CONFIG.COLS; x++) {
+        if (isPanel(grid[y][x]) && grid[y + 1][x] === EMPTY) {
+          grid[y + 1][x] = grid[y][x];
           grid[y][x] = EMPTY;
-          dist[writeY][x] = writeY - y;
-          max = Math.max(max, writeY - y);
+          dist[y + 1][x] = dist[y][x] + 1;
+          dist[y][x] = 0;
+          moved = true;
         }
-        writeY--;
       }
     }
+    const bounds = [...crystalBounds(grid).values()].sort((a, b) => b.y1 - a.y1);
+    for (const b of bounds) {
+      if (b.y1 >= CONFIG.ROWS - 1) continue;
+      let free = true;
+      for (let x = b.x0; x <= b.x1; x++) if (grid[b.y1 + 1][x] !== EMPTY) free = false;
+      if (!free) continue;
+      for (let y = b.y1; y >= b.y0; y--) {
+        for (let x = b.x0; x <= b.x1; x++) {
+          grid[y + 1][x] = grid[y][x];
+          dist[y + 1][x] = dist[y][x] + 1;
+          grid[y][x] = EMPTY;
+          dist[y][x] = 0;
+        }
+      }
+      moved = true;
+    }
   }
+  let max = 0;
+  for (const row of dist) for (const d of row) max = Math.max(max, d);
   return { dist, max };
 }
 
@@ -2256,10 +2524,16 @@ function checkMatches() {
     return;
   }
   state.chain++;
+  // Origem: o 1º match da resolução vem da troca do jogador ("swap");
+  // os seguintes, de peças que caíram depois de um clear ("gravity")
+  const origin = state.chain === 1 ? "swap" : "gravity";
+  const groups = findGroups(state.grid, matches);
   addScore(matches.length, state.chain);
   const n = matches.length;
   Sound.play(n >= 5 ? "clear5" : n === 4 ? "clear4" : "clear3");
   if (state.chain >= 2) Sound.play("chain" + Math.min(state.chain, MAX_CHAIN_SOUND));
+  growCrystal(groups, origin);
+  state.breaking = findBreakingCrystals(groups);
   state.clearing = matches;
   state.phase = Phase.CLEARING;
   state.phaseTimer = clearMs();
@@ -2268,6 +2542,8 @@ function checkMatches() {
 function finishClear() {
   for (const { x, y } of state.clearing) state.grid[y][x] = EMPTY;
   state.clearing = [];
+  breakCrystals(state.breaking);
+  state.breaking = [];
   settleBoard(); // gravidade + checagem de novos matches (chains)
 }
 
@@ -2276,7 +2552,306 @@ function gameOver() {
   state.clearing = [];
   state.banner = "";
   Sound.stopLoop();
-  Sound.play("gameOver");
+  if (match.versus) {
+    // Quem estourou perdeu: se foi a IA, o jogador venceu
+    match.result = state.isAI ? "win" : "lose";
+    Sound.play(state.isAI ? "victory" : "gameOver", { force: true });
+  } else {
+    Sound.play("gameOver");
+  }
+}
+
+/* =========================================================
+   CRYSTALS
+   Montagem (janela de combo), envio com cancelamento, chegada no
+   topo do adversário, e quebra pelo match do mesmo elemento.
+   ========================================================= */
+const crystalWidthFor = (size) => (size >= 6 ? CRYSTAL_MAX_WIDTH : CRYSTAL_WIDTH_BY_CLEAR[size]);
+
+/** Clears 4+ criam/aumentam o cristal pendente; clear de 3 só por gravidade vira "eco". */
+function growCrystal(groups, origin) {
+  if (!state.opponent) return; // sem adversário (Endless), não há para quem mandar
+  for (const g of groups) {
+    const size = g.cells.length;
+    const p = state.pendingCrystal;
+    if (size >= 4) {
+      if (!p) {
+        state.pendingCrystal = { element: g.element, w: crystalWidthFor(size), h: 1, timer: CRYSTAL_COMBO_WINDOW_MS };
+      } else {
+        p.h = Math.min(CRYSTAL_MAX_HEIGHT, p.h + 1);
+        p.w = Math.max(p.w, crystalWidthFor(size));
+        p.timer = CRYSTAL_COMBO_WINDOW_MS;
+      }
+    } else if (size === 3 && origin === "gravity" && !p) {
+      state.pendingCrystal = { element: g.element, w: CRYSTAL_ECHO_WIDTH, h: 1, timer: CRYSTAL_COMBO_WINDOW_MS, echo: true };
+      showMessage("ECO!");
+    }
+  }
+}
+
+/** Janela fechou: o cristal primeiro cancela os que estão chegando; o resto vai para o adversário. */
+function sendCrystal() {
+  const p = state.pendingCrystal;
+  state.pendingCrystal = null;
+  let power = p.w * p.h;
+  let cancelled = false;
+  for (const inc of [...state.incoming]) {
+    if (power <= 0) break;
+    const cells = inc.w * inc.h;
+    cancelled = true;
+    if (power >= cells) {
+      power -= cells;
+      state.incoming.splice(state.incoming.indexOf(inc), 1);
+    } else {
+      // Cancela linhas inteiras do cristal que está chegando (pelo menos uma)
+      inc.h -= Math.max(1, Math.floor(power / inc.w));
+      if (inc.h <= 0) state.incoming.splice(state.incoming.indexOf(inc), 1);
+      power = 0;
+    }
+  }
+  if (cancelled) showMessage("CANCELADO!");
+  if (power < CRYSTAL_ECHO_WIDTH) return; // sobra menor que o menor cristal não é enviada
+  let w = p.w, h = Math.ceil(power / p.w);
+  if (power < p.w) { w = power; h = 1; }
+  state.opponent.incoming.push({ element: p.element, w, h, eta: CRYSTAL_WARNING_MS, blocked: 0 });
+  Sound.play("crystalSend");
+  if (state.isAI) Sound.play("crystalWarning", { force: true }); // o jogador precisa ouvir o aviso
+}
+
+/** Cristais do mesmo elemento encostados (horizontal/vertical) em algum painel do clear. */
+function findBreakingCrystals(groups) {
+  const ids = new Set();
+  for (const g of groups) {
+    for (const c of g.cells) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = c.x + dx, ny = c.y + dy;
+        if (nx < 0 || nx >= CONFIG.COLS || ny < 0 || ny >= CONFIG.ROWS) continue;
+        const v = state.grid[ny][nx];
+        if (!isCrystal(v)) continue;
+        const id = crystalIdOf(v);
+        const crystal = state.crystals.get(id);
+        if (crystal && crystal.element === g.element) ids.add(id);
+      }
+    }
+  }
+  return [...ids];
+}
+
+/** O cristal quebra inteiro: cada casa vira um painel aleatório (que depois cai). */
+function breakCrystals(ids) {
+  if (!ids.length) return;
+  const S = CONFIG.CELL;
+  for (const id of ids) {
+    const crystal = state.crystals.get(id);
+    let cells = 0;
+    for (let y = 0; y < CONFIG.ROWS; y++) {
+      for (let x = 0; x < CONFIG.COLS; x++) {
+        if (state.grid[y][x] !== CRYSTAL_ID_BASE + id) continue;
+        state.grid[y][x] = randomColorExcept(new Set(), state.rng);
+        cells++;
+        spawnShards(x * S + S / 2, y * S + S / 2, crystal.element);
+      }
+    }
+    state.crystals.delete(id);
+    state.score += cells * CRYSTAL_BREAK_POINTS_PER_CELL;
+  }
+  showMessage(ids.length > 1 ? `${ids.length} CRISTAIS QUEBRADOS!` : "CRISTAL QUEBRADO!");
+  Sound.play("crystalBreak");
+}
+
+/** Tenta colocar o cristal no topo; devolve false se não houver espaço. */
+function dropCrystal(inc) {
+  const g = state.grid;
+  const xs = [];
+  for (let x = 0; x <= CONFIG.COLS - inc.w; x++) {
+    let free = true;
+    for (let y = 0; y < inc.h && free; y++) for (let k = 0; k < inc.w; k++) if (g[y][x + k] !== EMPTY) free = false;
+    if (free) xs.push(x);
+  }
+  if (!xs.length) return false;
+  const x0 = xs[Math.floor(state.rng() * xs.length)];
+  const id = state.nextCrystalId++;
+  state.crystals.set(id, { element: inc.element });
+  for (let y = 0; y < inc.h; y++) for (let k = 0; k < inc.w; k++) g[y][x0 + k] = CRYSTAL_ID_BASE + id;
+  Sound.play("crystalLand");
+  settleBoard(); // o cristal cai até apoiar na pilha
+  return true;
+}
+
+function updateCrystals(dt) {
+  // Janela de combo do cristal sendo montado
+  const p = state.pendingCrystal;
+  if (p) {
+    p.timer -= dt;
+    if (p.timer <= 0) sendCrystal();
+  }
+  // Cristais chegando: enquanto este lado monta um combo, eles esperam (dá para cancelar)
+  if (!state.incoming.length) return;
+  const inc = state.incoming[0];
+  if (!state.pendingCrystal) inc.eta -= dt;
+  if (inc.eta > 0 || state.phase !== Phase.IDLE) return;
+  if (dropCrystal(inc)) {
+    state.incoming.shift();
+  } else {
+    inc.blocked += dt;
+    if (inc.blocked >= CRYSTAL_BLOCKED_GRACE_MS) gameOver(); // não coube: a pilha estourou
+  }
+}
+
+/** Estilhaços de cristal (puramente visuais). */
+function spawnShards(cx, cy, element) {
+  for (let i = 0; i < 5; i++) {
+    const a = state.rng() * Math.PI * 2;
+    const sp = 0.06 + state.rng() * 0.16;
+    state.particles.push({
+      x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.12,
+      life: 0, max: 520 + state.rng() * 300, size: 3 + state.rng() * 4, rot: state.rng() * 6, element,
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (const p of state.particles) {
+    p.life += dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 0.0006 * dt;
+    p.rot += dt * 0.01;
+  }
+  state.particles = state.particles.filter(p => p.life < p.max);
+}
+
+/* =========================================================
+   AI
+   Joga com as mesmas regras: anda o cursor casa por casa e troca.
+   Avalia cada troca possível numa cópia da PRÓPRIA grade (nunca olha
+   a próxima linha que ainda não apareceu).
+   ========================================================= */
+function createAI() {
+  return { plan: null, thinkTimer: 600, moveTimer: 0 };
+}
+
+const cloneGrid = (g) => g.map(row => row.slice());
+
+/** Altura da pilha: quantas linhas, a partir do topo, já têm algo. */
+function stackHeight(grid) {
+  for (let y = 0; y < CONFIG.ROWS; y++) if (grid[y].some(v => v !== EMPTY)) return CONFIG.ROWS - y;
+  return 0;
+}
+
+/** Pares de painéis iguais encostados (quanto mais, mais perto de um match). */
+function samePairs(grid) {
+  let n = 0;
+  for (let y = 0; y < CONFIG.ROWS; y++) {
+    for (let x = 0; x < CONFIG.COLS; x++) {
+      const v = grid[y][x];
+      if (!isPanel(v)) continue;
+      if (x + 1 < CONFIG.COLS && grid[y][x + 1] === v) n++;
+      if (y + 1 < CONFIG.ROWS && grid[y + 1][x] === v) n++;
+    }
+  }
+  return n;
+}
+
+/** Simula uma troca e devolve uma nota (maior = melhor) e a grade resultante. */
+function aiEvaluateSwap(grid, x, y, level, crystals) {
+  const g = cloneGrid(grid);
+  const a = g[y][x];
+  g[y][x] = g[y][x + 1];
+  g[y][x + 1] = a;
+  const before = stackHeight(grid);
+  let score = 0, chain = 0;
+  for (;;) {
+    applyGravity(g);
+    const matches = findMatches(g);
+    if (!matches.length) break;
+    chain++;
+    for (const grp of findGroups(g, matches)) {
+      const size = grp.cells.length;
+      if (size >= 4) score += 25 + 12 * size;                // gera cristal
+      else score += chain >= 2 ? 18 : 6;                     // eco vale mais que um 3 comum
+      for (const c of grp.cells) {                          // quebra cristal do mesmo elemento?
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = c.x + dx, ny = c.y + dy;
+          if (nx < 0 || nx >= CONFIG.COLS || ny < 0 || ny >= CONFIG.ROWS) continue;
+          const v = g[ny][nx];
+          if (isCrystal(v) && crystals.get(crystalIdOf(v))?.element === grp.element) score += 30;
+        }
+      }
+    }
+    if (chain >= 2) score += 40 * chain;
+    for (const c of matches) g[c.y][c.x] = EMPTY;
+    if (level.depth < 2) { applyGravity(g); break; }       // fácil: não enxerga a cascata
+  }
+  const after = stackHeight(g);
+  const danger = before >= CONFIG.ROWS - 3;
+  score += (before - after) * (danger ? 30 : 4);           // em perigo, fugir do topo vale muito
+  if (score === 0) score += (samePairs(g) - samePairs(grid)) * 1.5; // sem clear: prepara o próximo
+  return { score, grid: g };
+}
+
+function aiCandidates(grid) {
+  const out = [];
+  for (let y = 0; y < CONFIG.ROWS; y++) {
+    for (let x = 0; x < CONFIG.COLS - 1; x++) {
+      const a = grid[y][x], b = grid[y][x + 1];
+      if (a === b || isCrystal(a) || isCrystal(b)) continue; // trocas inúteis ou proibidas
+      out.push({ x, y });
+    }
+  }
+  return out;
+}
+
+/** Escolhe a próxima troca (ou null se nenhuma vale a pena). */
+function aiChooseMove(level) {
+  const grid = state.grid;
+  let moves = aiCandidates(grid).map(m => {
+    const r = aiEvaluateSwap(grid, m.x, m.y, level, state.crystals);
+    return { ...m, score: r.score, after: r.grid };
+  });
+  if (!moves.length) return null;
+  // Difícil: olha também a melhor segunda troca depois das 6 melhores primeiras
+  if (level.depth >= 3) {
+    moves.sort((a, b) => b.score - a.score);
+    for (const m of moves.slice(0, 6)) {
+      let best2 = 0;
+      for (const n of aiCandidates(m.after)) {
+        best2 = Math.max(best2, aiEvaluateSwap(m.after, n.x, n.y, level, state.crystals).score);
+      }
+      m.score += best2 * 0.5;
+    }
+  }
+  // Pequeno desempate: prefere jogadas perto do cursor (menos passos)
+  const c = state.cursor;
+  for (const m of moves) m.score -= (Math.abs(m.x - c.x) + Math.abs(m.y - c.y)) * 0.4;
+  moves.sort((a, b) => b.score - a.score);
+  if (Math.random() < level.errorChance) {
+    return moves[Math.floor(Math.random() * Math.min(moves.length, 8))]; // erro: jogada pior
+  }
+  return moves[0].score > 1 ? moves[0] : null;
+}
+
+function updateAI(dt) {
+  const ai = state.ai;
+  const level = AI_LEVELS[match.aiLevel];
+  ai.thinkTimer -= dt;
+  ai.moveTimer -= dt;
+  if (!ai.plan && ai.thinkTimer <= 0 && state.phase === Phase.IDLE) {
+    ai.plan = aiChooseMove(level);
+    ai.thinkTimer = level.thinkMs * (0.7 + Math.random() * 0.6);
+  }
+  const p = ai.plan;
+  if (!p || ai.moveTimer > 0) return;
+  if (p.y < 0) { ai.plan = null; return; }
+  ai.moveTimer = level.moveMs * (0.8 + Math.random() * 0.4);
+  const c = state.cursor;
+  if (c.x !== p.x) moveCursor(Math.sign(p.x - c.x), 0);          // um passo por vez, sem teleporte
+  else if (c.y !== p.y) moveCursor(0, Math.sign(p.y - c.y));
+  else if (state.phase === Phase.IDLE) {
+    trySwap();
+    ai.plan = null;
+    ai.thinkTimer = level.thinkMs;
+  }
 }
 
 /* =========================================================
@@ -2319,12 +2894,16 @@ function update(dt) {
   // Pausado: nada avança (pilha, cronômetro, animações, chains, avisos)
   if (state.paused) return;
   state.clock += dt;
-  if (state.phase === Phase.GAME_OVER) return;
+  updateParticles(dt);
+  if (matchOver()) return;
 
   state.elapsedMs += dt;
   updateSpeedWarnings();
   updatePhase(dt);
+  updateCrystals(dt);
+  if (matchOver()) return;
   updateRise(dt);
+  if (state.ai) updateAI(dt);
 
   if (state.messageTimer > 0) {
     state.messageTimer -= dt;
@@ -2892,11 +3471,21 @@ function iconOrganic(g, s) {
 /* =========================================================
    RENDER
    ========================================================= */
-const canvas = $("board");
-const ctx = canvas.getContext("2d");
-canvas.width = Math.round(BOARD_W * DPR);
-canvas.height = Math.round(BOARD_H * DPR);
-canvas.style.width = BOARD_W + "px";
+const canvas = $("board");      // tabuleiro do jogador (recebe o foco do teclado)
+const canvas2 = $("board2");    // tabuleiro da IA (Versus)
+for (const c of [canvas, canvas2]) {
+  c.width = Math.round(BOARD_W * DPR);
+  c.height = Math.round(BOARD_H * DPR);
+}
+const ctxP1 = canvas.getContext("2d");
+const ctxP2 = canvas2.getContext("2d");
+let ctx = ctxP1;                // contexto do tabuleiro sendo desenhado agora
+
+/** Põe um tabuleiro "em foco": as funções de jogo e de desenho passam a agir nele. */
+function useBoard(b) {
+  state = b;
+  ctx = b.isAI ? ctxP2 : ctxP1;
+}
 
 // Sprites dos elementos, gerados uma vez na resolução real da tela
 const SPRITE_PX = Math.round(CONFIG.CELL * DPR);
@@ -2913,6 +3502,10 @@ const ui = {
   goScore: $("goScore"),
   goTime: $("goTime"),
   goChain: $("goChain"),
+  goTitle: $("goTitle"),
+  arena: $("arena"),
+  p2Col: $("p2Col"),
+  huds: [$("p1Hud"), $("p2Hud")],
 };
 
 function formatTime(ms) {
@@ -2976,16 +3569,26 @@ function render() {
     line(0, py, BOARD_W, py);
   }
 
-  // Blocos
+  // Blocos (cristais são desenhados depois, como um bloco só)
   const clearingSet = new Set(state.clearing.map(c => c.y * CONFIG.COLS + c.x));
   for (let y = 0; y < CONFIG.ROWS; y++) {
     for (let x = 0; x < CONFIG.COLS; x++) {
       const type = state.grid[y][x];
-      if (type === EMPTY) continue;
+      if (type === EMPTY || isCrystal(type)) continue;
       const { vx, vy } = visualPos(x, y);
       const look = clearingSet.has(y * CONFIG.COLS + x) ? clearingLook(time) : undefined;
       drawBlock(type, vx * S, vy * S - offset, look);
     }
+  }
+
+  // Cristais
+  for (const [id, b] of crystalBounds(state.grid)) {
+    const crystal = state.crystals.get(id);
+    if (!crystal) continue;
+    const { vy } = visualPos(b.x0, b.y0);
+    const breaking = state.breaking.includes(id) && state.phase === Phase.CLEARING;
+    drawCrystal(crystal.element, b.x0 * S, vy * S - offset, (b.x1 - b.x0 + 1) * S, (b.y1 - b.y0 + 1) * S,
+      time, breaking ? clearingLook(time) : null);
   }
 
   // Próxima linha surgindo (escurecida, ainda não jogável)
@@ -2993,11 +3596,149 @@ function render() {
     drawBlock(state.nextRow[x], x * S, CONFIG.ROWS * S - offset, { shade: 0.6 });
   }
 
-  if (state.phase !== Phase.GAME_OVER) drawCursor(time, offset);
+  drawParticles();
+  if (!matchOver()) drawCursor(time, offset);
+  if (state.incoming.length) drawIncoming(time);
   if (isTurbo()) drawTurboTag();
   if (state.banner) drawBanner(state.banner, time);
+}
 
-  syncHud();
+function hexToRgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/** Cristal: bloco translúcido com facetas, brilho pulsante e o ícone do elemento. */
+function drawCrystal(element, px, py, w, h, time, look) {
+  const el = ELEMENTS[element];
+  const pad = 2;
+  const x = px + pad, y = py + pad, cw = w - pad * 2, ch = h - pad * 2;
+  ctx.save();
+  roundRect(x, y, cw, ch, 9);
+  const body = ctx.createLinearGradient(x, y, x + cw, y + ch);
+  body.addColorStop(0, hexToRgba(el.light, 0.62));
+  body.addColorStop(1, hexToRgba(el.dark, 0.72));
+  ctx.fillStyle = body;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  // facetas diagonais
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.5;
+  for (let k = -ch; k < cw; k += CONFIG.CELL * 0.8) line(x + k, y + ch, x + k + ch, y);
+  // reflexo grande no canto superior esquerdo
+  ctx.fillStyle = "rgba(255,255,255,0.20)";
+  ctx.beginPath();
+  ctx.moveTo(x, y); ctx.lineTo(x + cw * 0.55, y); ctx.lineTo(x, y + ch * 0.75); ctx.closePath();
+  ctx.fill();
+  // ícone do elemento, translúcido, no centro
+  const icon = Math.min(CONFIG.CELL * 0.95, ch - 6, cw - 6);
+  ctx.globalAlpha = 0.55;
+  ctx.drawImage(sprites[element], x + (cw - icon) / 2, y + (ch - icon) / 2, icon, icon);
+  ctx.globalAlpha = 1;
+  // brilhos que piscam
+  for (let i = 0; i < 3; i++) {
+    const t = (time / 900 + i * 0.37) % 1;
+    const sx = x + cw * ((i * 0.41 + 0.18) % 1), sy = y + ch * ((i * 0.63 + 0.25) % 1);
+    const r = 2.5 + 2.5 * Math.sin(t * Math.PI);
+    ctx.fillStyle = `rgba(255,255,255,${0.75 * Math.sin(t * Math.PI)})`;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - r); ctx.lineTo(sx + r * 0.3, sy); ctx.lineTo(sx, sy + r); ctx.lineTo(sx - r * 0.3, sy); ctx.closePath();
+    ctx.fill();
+  }
+  if (look && look.flash) {
+    ctx.fillStyle = `rgba(255,255,255,${look.flash})`;
+    ctx.fillRect(x, y, cw, ch);
+  }
+  ctx.restore();
+  // contorno claro com brilho suave
+  const glow = 0.6 + 0.25 * Math.sin(time / 260);
+  roundRect(x, y, cw, ch, 9);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = `rgba(255,255,255,${glow})`;
+  ctx.stroke();
+  roundRect(x + 3, y + 3, cw - 6, ch - 6, 7);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = hexToRgba(el.light, 0.9);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const p of state.particles) {
+    const a = 1 - p.life / p.max;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = ELEMENTS[p.element].light;
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -p.size); ctx.lineTo(p.size * 0.7, 0); ctx.lineTo(0, p.size); ctx.lineTo(-p.size * 0.7, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/** Faixa no topo: "CRISTAL CHEGANDO" com o tamanho de cada cristal a caminho. */
+function drawIncoming(time) {
+  const first = state.incoming[0];
+  const soon = first.eta <= CRYSTAL_WARNING_MS;
+  ctx.save();
+  ctx.fillStyle = "rgba(10,8,14,0.78)";
+  ctx.fillRect(0, 0, BOARD_W, 26);
+  const blink = soon && Math.floor(time / 160) % 2 === 0;
+  ctx.fillStyle = blink ? "#ff5a64" : "#ffd84a";
+  ctx.font = "bold 12px system-ui, sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.fillText(state.pendingCrystal ? "CRISTAL ESPERANDO" : "⬇ CRISTAL CHEGANDO", 8, 13);
+  let x = BOARD_W - 8;
+  for (const inc of state.incoming.slice(0, 4)) {
+    const cw = inc.w * 5, chh = inc.h * 5;
+    x -= cw;
+    ctx.fillStyle = ELEMENTS[inc.element].light;
+    ctx.fillRect(x, 13 - chh / 2, cw, chh);
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(x + 0.5, 13 - chh / 2 + 0.5, cw - 1, chh - 1);
+    x -= 6;
+  }
+  ctx.restore();
+}
+
+/** Cabeçalho de cada tabuleiro no Versus: personagem, nome e cristal sendo montado. */
+function syncBoardHud(b, hud) {
+  const p = b.pendingCrystal;
+  const key = p ? `${p.element}:${p.w}x${p.h}` : "none";
+  const mini = hud.querySelector(".crystal-mini");
+  if (mini.dataset.key !== key) {
+    mini.dataset.key = key;
+    mini.replaceChildren();
+    mini.classList.toggle("empty", !p);
+    if (p) {
+      mini.style.gridTemplateColumns = `repeat(${p.w}, 8px)`;
+      for (let i = 0; i < p.w * p.h; i++) {
+        const cell = document.createElement("i");
+        cell.style.background = hexToRgba(ELEMENTS[p.element].light, 0.85);
+        mini.appendChild(cell);
+      }
+    } else {
+      mini.style.gridTemplateColumns = "";
+      mini.textContent = "sem cristal";
+    }
+  }
+  hud.querySelector(".crystal-bar span").style.width = p ? `${(p.timer / CRYSTAL_COMBO_WINDOW_MS) * 100}%` : "0%";
+}
+
+/** Prepara o cabeçalho (arte + nome) de um tabuleiro quando a partida começa. */
+function setupBoardHud(b, hud) {
+  hud.querySelector(".hud-name").textContent = b.name;
+  const art = hud.querySelector(".hud-art");
+  art.replaceChildren(...(b.characterId ? [characterArt(b.characterId)] : []));
+  const mini = hud.querySelector(".crystal-mini");
+  delete mini.dataset.key;
 }
 
 /** Atualiza painel lateral e overlays HTML (pause / game over). */
@@ -3011,7 +3752,7 @@ function syncHud() {
     : isFrenzy() ? "value frenzy" : rowsPerMin >= 20 ? "value fast" : "value";
   ui.chainMsg.textContent = state.message;
 
-  const over = state.phase === Phase.GAME_OVER;
+  const over = matchOver();
   const showPause = state.paused && !over;
   if (ui.pauseOverlay.hidden === showPause) {
     ui.pauseOverlay.hidden = !showPause;
@@ -3021,6 +3762,9 @@ function syncHud() {
   if (ui.gameOverOverlay.hidden === over) {
     ui.gameOverOverlay.hidden = !over;
     if (over) {
+      const title = !match.versus ? "GAME OVER" : match.result === "win" ? "VITÓRIA!" : "DERROTA";
+      ui.goTitle.textContent = title;
+      ui.goTitle.className = match.versus && match.result === "win" ? "win" : "danger";
       ui.goScore.textContent = state.score;
       ui.goTime.textContent = formatTime(state.elapsedMs);
       ui.goChain.textContent = state.bestChain;
@@ -3063,7 +3807,7 @@ function drawCursor(time, offset) {
   const top = y * S - offset;
   const pulse = 1 + Math.sin(time / 150) * 1;
   ctx.lineWidth = 3;
-  ctx.strokeStyle = "#ffffff";
+  ctx.strokeStyle = state.isAI ? "#ffb347" : "#ffffff";
   roundRect(x * S + 1 - pulse, top + 1 - pulse, S * 2 - 2 + pulse * 2, S - 2 + pulse * 2, 6);
   ctx.stroke();
   // Divisória central
@@ -3128,18 +3872,21 @@ function loop(time) {
   const keyboardTurbo = bindings.keyboard.turbo.some(c => c && input.keysDown.has(c));
   input.turbo = currentScreen === Screen.GAME && (keyboardTurbo || input.padTurbo);
 
-  if (currentScreen === Screen.GAME && state) {
-    update(dt);
-    render();
+  if (currentScreen === Screen.GAME && boards.length) {
+    for (const b of boards) { useBoard(b); update(dt); }
+    for (const b of boards) { useBoard(b); render(); }
+    useBoard(boards[0]);           // fora do loop, `state` é sempre o jogador
+    syncHud();
+    if (match.versus) boards.forEach((b, i) => syncBoardHud(b, ui.huds[i]));
   }
 
-  // Aviso de perigo em loop enquanto a pilha está perto do topo
+  // Aviso de perigo em loop enquanto a pilha DO JOGADOR está perto do topo
   const inGame = currentScreen === Screen.GAME && !!state;
-  const danger = inGame && !state.paused && state.phase !== Phase.GAME_OVER && isInDanger();
+  const danger = inGame && !state.paused && !matchOver() && isInDanger();
   Sound.setLoop("warning", danger);
 
-  // Música: some no Game Over, abaixa no pause e nos menus
-  const over = inGame && state.phase === Phase.GAME_OVER;
+  // Música: some no fim da partida, abaixa no pause e nos menus
+  const over = inGame && matchOver();
   const level = inGame ? (state.paused ? MUSIC_DUCK : 1) : MUSIC_MENU_LEVEL;
   Sound.setMusic(!over, level);
 
@@ -3149,8 +3896,30 @@ function loop(time) {
 /* =========================================================
    BOOT / RESTART
    ========================================================= */
+function heroName() {
+  return hero ? hero.name : "Jogador";
+}
+
+/** (Re)começa a partida atual. No Versus, os dois lados recebem a mesma semente. */
 function restart() {
-  state = createInitialState();
+  const seed = randomSeed();
+  const player = createInitialState({ seed, characterId: hero ? hero.id : null, name: heroName() });
+  boards = [player];
+  if (match.versus) {
+    const cpu = createInitialState({
+      seed, isAI: true, characterId: match.opponentId, name: CHARACTER_NAMES[match.opponentId - 1],
+    });
+    player.opponent = cpu;
+    cpu.opponent = player;
+    boards.push(cpu);
+  }
+  match.result = null;
+  useBoard(player);
+  // Layout: um tabuleiro (solo) ou dois espelhados (Versus)
+  ui.arena.classList.toggle("versus", match.versus);
+  ui.p2Col.hidden = !match.versus;
+  ui.huds[0].hidden = !match.versus;
+  boards.forEach((b, i) => setupBoardHud(b, ui.huds[i]));
   Sound.stopMusic(); // a música recomeça do início
 }
 

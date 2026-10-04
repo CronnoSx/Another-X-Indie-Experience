@@ -510,6 +510,56 @@ def make_music():
     print(f"  {'music_endless.wav':<24} {total * 1000:6.0f} ms (loop, {MUSIC_SR} Hz)")
 
 
+# =========================================================
+# 12. Cristais e Versus
+# =========================================================
+
+def make_crystal():
+    # Quebra: estilhaços de vidro (pings agudos inarmônicos) + chiado + baque leve
+    x = silence(0.4)
+    for i in range(16):
+        f = RNG.uniform(2200, 6500)
+        d = RNG.uniform(0.04, 0.16)
+        ping = osc(f, d) * env_ad(int(SR * d), 0.0005, d / 4) + 0.4 * osc(f * 2.76, d) * env_ad(int(SR * d), 0.0005, d / 6)
+        x = place(x, 0.32 * ping, RNG.uniform(0, 0.22))
+    burst = highpass(noise(0.18), 2800) * env_ad(int(SR * 0.18), 0.001, 0.035)
+    thump_d = 0.12
+    thump = osc(sweep(180, 70, thump_d), thump_d) * env_ad(int(SR * thump_d), 0.002, 0.03)
+    x = mix(x, 0.5 * burst, 0.45 * thump)
+    save("crystal_break.wav", room(x, 0.25, 0.9), 0.75)
+
+    # Envio: whoosh subindo + três brilhos em sequência
+    x = 0.45 * lowpass(whoosh(0.35, 500, 4200, 0.8), 7000)
+    for i, n in enumerate(["E6", "G6", "B6"]):
+        x = place(x, 0.5 * bell(note(n), 0.3, 1.2), 0.12 + i * 0.06)
+    save("crystal_send.wav", room(x, 0.2, 0.8), 0.6)
+
+    # Chegada: baque grave com ressonância de vidro
+    d = 0.3
+    low = osc(sweep(140, 55, d), d) * env_ad(int(SR * d), 0.003, 0.08)
+    glass = 0.35 * bell(note("A5"), 0.35, 0.8) + 0.25 * bell(note("D#6"), 0.35, 0.8)
+    x = mix(low, 0.6 * clack(note("A3"), 0.12), glass)
+    save("crystal_land.wav", room(x, 0.2, 0.9), 0.7)
+
+    # Aviso de cristal chegando: dois pings curtos descendo
+    x = silence(0.02)
+    for i, n in enumerate(["B5", "F5"]):
+        d = 0.12
+        x = place(x, osc(note(n), d, "triangle") * env_ad(int(SR * d), 0.002, 0.04), i * 0.1)
+    save("crystal_warning.wav", room(lowpass(x, 5000), 0.12, 0.6), 0.45)
+
+
+def make_victory():
+    # Arpejo maior subindo + acorde final com brilhos
+    x = silence(0.02)
+    for i, n in enumerate(["C5", "E5", "G5", "C6"]):
+        x = place(x, (0.75 + 0.08 * i) * bell(note(n), 0.7, 1.1), i * 0.11)
+    for n in ["C5", "E5", "G5", "C6"]:
+        x = place(x, 0.35 * bell(note(n), 1.2, 0.9), 0.48)
+    x = place(x, sparkle(note("C6"), 10, 0.35, 0.6), 0.5)
+    save("victory.wav", room(x, 0.3, 1.1), 0.85)
+
+
 if __name__ == "__main__":
     print("Gerando efeitos em", OUT_DIR)
     make_swap()
@@ -523,3 +573,5 @@ if __name__ == "__main__":
     make_ui_click()
     make_pause()
     make_music()
+    make_crystal()
+    make_victory()
