@@ -887,6 +887,7 @@ const DPR = Math.min(window.devicePixelRatio || 1, 2);
    Os 6 tipos de bloco. Índice 0 = vazio. Cada elemento define
    as cores do corpo, a textura e o ícone (desenhados em TILE ART).
    ========================================================= */
+const TILE_DIR = "tiles/"; // imagens dos blocos (por enquanto só o Metal; os outros são desenhados em código)
 const ELEMENTS = [
   null,
   { key: "water",   name: "Água",     light: "#4fe0ff", dark: "#0a5ff0", glow: "rgba(170,245,255,0.55)", rim: "#032c86",
@@ -900,7 +901,7 @@ const ELEMENTS = [
   { key: "plant",   name: "Planta",   light: "#9cf55a", dark: "#14a02a", glow: "rgba(220,255,150,0.45)", rim: "#08560f",
     texture: texturePlant,   icon: iconPlant },
   { key: "metal",   name: "Metal",    light: "#cfdbea", dark: "#46566c", glow: "rgba(225,238,255,0.30)", rim: "#1b2330",
-    texture: textureMetal,   icon: iconMetal },
+    texture: textureMetal,   icon: iconMetal, image: TILE_DIR + "metal.png" }, // imagem; o desenho em código é reserva
 ];
 const NUM_COLORS = ELEMENTS.length - 1;
 
@@ -3772,6 +3773,28 @@ function useBoard(b) {
 // Sprites dos elementos, gerados uma vez na resolução real da tela
 const SPRITE_PX = Math.round(CONFIG.CELL * DPR);
 const sprites = ELEMENTS.map((el, i) => (el ? buildSprite(el, SPRITE_PX, 1000 + i * 77) : null));
+loadTileImages();
+
+/**
+ * Blocos com imagem própria (`image`): quando a imagem carrega, ela substitui
+ * o desenho em código no MESMO sprite, então tudo que usa o sprite (tabuleiro,
+ * cristais, vitrine do menu, escurecido da linha nova, brilho ao sumir) a usa.
+ * Se a imagem faltar, fica o desenho em código.
+ */
+function loadTileImages() {
+  ELEMENTS.forEach((el, i) => {
+    if (!el || !el.image) return;
+    const img = new Image();
+    img.addEventListener("load", () => {
+      const g = sprites[i].getContext("2d");
+      g.clearRect(0, 0, SPRITE_PX, SPRITE_PX);
+      g.imageSmoothingQuality = "high";
+      g.drawImage(img, 0, 0, SPRITE_PX, SPRITE_PX);
+      if ($("menuTiles").childElementCount) renderMenuTiles();
+    }, { once: true });
+    img.src = el.image;
+  });
+}
 
 const ui = {
   timer: $("timer"),
@@ -4165,6 +4188,7 @@ function roundRect(x, y, w, h, r) {
 /** Desenha os 6 elementos na vitrine do menu principal. */
 function renderMenuTiles() {
   const host = $("menuTiles");
+  host.replaceChildren();
   const px = Math.round(40 * DPR);
   for (let i = 1; i <= NUM_COLORS; i++) {
     const c = document.createElement("canvas");
