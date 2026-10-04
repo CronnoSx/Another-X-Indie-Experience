@@ -311,12 +311,14 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));   /* colunas iguais, independentes do sprite */
     gap: 10px;
   }
-  @media (min-width: 820px) {
+  /* Área de seleção larga o bastante para o sprite mais largo (o 13, de punho erguido) */
+  .menu-card.create-card { max-width: 980px; }
+  @media (min-width: 1000px) {
     .char-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
   }
-  @media (max-width: 819px) {
-    .char-card { height: 152px; }
-    .char-card .char-art { height: 130px; }
+  @media (max-width: 520px) {
+    .char-card { height: 134px; }
+    .char-card .char-art { height: 112px; }
   }
   .char-card {
     position: relative;
@@ -328,7 +330,7 @@
     display: grid;
     place-items: end center;
     height: 178px;
-    overflow: visible;
+    overflow: hidden;   /* o desenho nunca invade o cartão vizinho */
   }
   .char-card:hover, .char-card:focus-visible { outline: none; border-color: var(--accent); background: #2f3450; }
   .char-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -346,8 +348,7 @@
     display: grid;
     place-items: center;
   }
-  /* Todos com a mesma altura: sprites mais largos (punho erguido, por exemplo) podem
-     passar um pouco da borda do cartão em vez de encolher o personagem inteiro */
+  /* Todos com a mesma altura (não encolhe o sprite para caber na largura) */
   .char-art { height: 156px; width: auto; max-width: none; display: block; }
   .char-placeholder {
     height: 150px;
@@ -494,7 +495,7 @@
 
   <!-- ======================= CRIAÇÃO DE PERSONAGEM ======================= -->
   <section id="createScreen" class="screen" hidden>
-    <div class="menu-card wide">
+    <div class="menu-card wide create-card">
       <h2 class="opt-title">Criar personagem</h2>
 
       <!-- 1. Gênero: só os símbolos, sem texto -->
