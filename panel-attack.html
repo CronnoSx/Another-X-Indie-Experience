@@ -856,7 +856,7 @@ const GRACE_TIME_MS = 1500;
 /* ---------- Quantidade de elementos ---------- */
 const ELEMENTS_COUNT_DEFAULT = 6;   // padrão de todos os modos (o competitivo é com 6)
 const ELEMENTS_COUNT_BEGINNER = 5;  // opção "Iniciante": só no Endless e no Versus vs IA Fácil
-const BEGINNER_LEFT_OUT_ELEMENT = 6; // no Iniciante, fica de fora o Orgânico
+const BEGINNER_LEFT_OUT_ELEMENT = 6; // no Iniciante, fica de fora o Metal
 
 /* ---------- Cristais (ataque do Versus) ---------- */
 const CRYSTAL_COMBO_WINDOW_MS = 1800;            // clears na janela se somam no cristal pendente
@@ -893,14 +893,14 @@ const ELEMENTS = [
     texture: textureWater,   icon: iconWater },
   { key: "fire",    name: "Fogo",     light: "#ffc21a", dark: "#f0300a", glow: "rgba(255,245,140,0.60)", rim: "#7a0f00",
     texture: textureFire,    icon: iconFire },
-  { key: "earth",   name: "Terra",    light: "#d98a45", dark: "#7a360c", glow: "rgba(255,200,130,0.30)", rim: "#4f2006",
-    texture: textureEarth,   icon: iconEarth },
+  { key: "earth",   name: "Terra",    light: "#c98a4a", dark: "#6e3a12", glow: "rgba(240,190,120,0.18)", rim: "#4a2208",
+    texture: textureEarth,   icon: iconEarth, matte: true }, // fosca: bem diferente do Metal
   { key: "air",     name: "Ar",       light: "#f4feff", dark: "#3cd0f2", glow: "rgba(255,255,255,0.65)", rim: "#0f86b2",
     texture: textureAir,     icon: iconAir },
   { key: "plant",   name: "Planta",   light: "#9cf55a", dark: "#14a02a", glow: "rgba(220,255,150,0.45)", rim: "#08560f",
     texture: texturePlant,   icon: iconPlant },
-  { key: "organic", name: "Orgânico", light: "#6e6a86", dark: "#1c1a28", glow: "rgba(200,170,255,0.18)", rim: "#08070d",
-    texture: textureOrganic, icon: iconOrganic },
+  { key: "metal",   name: "Metal",    light: "#cfdbea", dark: "#46566c", glow: "rgba(225,238,255,0.30)", rim: "#1b2330",
+    texture: textureMetal,   icon: iconMetal },
 ];
 const NUM_COLORS = ELEMENTS.length - 1;
 
@@ -1742,14 +1742,24 @@ const BIOMES = [
   { id: "forest", name: "Floresta", color: "#2f9e46",
     icon: '<path d="M12 2.5 17 9h-2.6l3.8 5.2h-3.3L19 20H5l4.1-5.8H5.8L9.6 9H7z" fill="currentColor"/><rect x="10.9" y="19.5" width="2.2" height="3" fill="currentColor"/>' },
   { id: "metal",  name: "Metal",    color: "#7d8a9c",
-    icon: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-dasharray="2.6 2.63"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="2.6"/>' },
+    icon: '<path d="M7 11.5h10l1.5-3.5h-13z" fill="currentColor"/><path d="M2 19.5h9.2l1.2-3.6H3.2zM12.8 19.5H22l-1.2-3.6h-6.8z" fill="currentColor"/><path d="M6.6 12.6h10.8M2.6 15h9.4M13.2 15h9.2" stroke="currentColor" stroke-width="1.6"/>' },
   { id: "fire",   name: "Fogo",     color: "#e8501f",
     icon: '<path d="M12 2c1 4 6.2 6.4 6.2 12.2a6.2 6.2 0 0 1-12.4 0c0-3 1.5-5.1 3-7 .3 2 1.2 3.3 2.3 3.6C10.9 7 11 4.6 12 2z" fill="currentColor"/>' },
-  { id: "fungi",  name: "Vitalis", color: "#8e4fd8", // antigo "Orgânico (Fungos)"; o id continua "fungi"
-    icon: '<path d="M2.5 12.2a9.5 8.4 0 0 1 19 0z" fill="currentColor"/><path d="M9.4 12.2h5.2l.9 7.8a1 1 0 0 1-1 1.1H9.5a1 1 0 0 1-1-1.1z" fill="currentColor"/><circle cx="8" cy="8.6" r="1.4" fill="rgba(0,0,0,.25)"/><circle cx="14.6" cy="7" r="1.1" fill="rgba(0,0,0,.25)"/>' },
+  { id: "water",  name: "Água",     color: "#1f7fe0",
+    icon: '<path d="M12 2.5C9 7.5 5.5 11 5.5 15a6.5 6.5 0 0 0 13 0c0-4-3.5-7.5-6.5-12.5z" fill="currentColor"/><path d="M9 15.2a3 3 0 0 0 2.6 3" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5" stroke-linecap="round"/>' },
   { id: "air",    name: "Ar",       color: "#2fb5d9",
     icon: '<path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>' },
 ];
+/**
+ * Subbiomas: fora do mapa por enquanto. O Vitalis volta no futuro como
+ * evolução da Floresta; os dados ficam guardados aqui.
+ */
+const SUB_BIOMES = [
+  { id: "fungi",  name: "Vitalis", color: "#8e4fd8", parent: "forest", // antigo "Orgânico (Fungos)"
+    icon: '<path d="M2.5 12.2a9.5 8.4 0 0 1 19 0z" fill="currentColor"/><path d="M9.4 12.2h5.2l.9 7.8a1 1 0 0 1-1 1.1H9.5a1 1 0 0 1-1-1.1z" fill="currentColor"/><circle cx="8" cy="8.6" r="1.4" fill="rgba(0,0,0,.25)"/><circle cx="14.6" cy="7" r="1.1" fill="rgba(0,0,0,.25)"/>' },
+];
+/** Progresso salvo do Vitalis passa para o bioma de Água. */
+const BIOME_ID_MIGRATIONS = { fungi: "water" };
 const MAP_RADIUS = 36; // distância dos biomas ao centro, em % do mapa
 
 let hero = loadHero();                       // personagem salvo (ou null)
@@ -1759,9 +1769,33 @@ let createStep = "gender";
 function loadHero() {
   try {
     const h = JSON.parse(localStorage.getItem(HERO_KEY) || "null");
-    if (h && CHARACTERS.some(c => c.id === h.id) && typeof h.name === "string") return h;
+    if (h && CHARACTERS.some(c => c.id === h.id) && typeof h.name === "string") return migrateHero(h);
   } catch { /* sem personagem salvo */ }
   return null;
+}
+
+/**
+ * Saves antigos: ids de bioma que saíram do mapa (Vitalis → Água) e o elemento
+ * Orgânico (→ Metal) são trocados onde aparecerem, em chaves ou valores.
+ * Se os dois existirem, fica o maior progresso.
+ */
+function migrateHero(h) {
+  const MAP = { ...BIOME_ID_MIGRATIONS, organic: "metal" };
+  const better = (a, b) => (typeof a === "number" && typeof b === "number") ? Math.max(a, b) : (a ?? b);
+  const walk = (v) => {
+    if (Array.isArray(v)) return [...new Set(v.map(x => (typeof x === "string" && MAP[x]) || walk(x)))];
+    if (v && typeof v === "object") {
+      const out = {};
+      for (const [k, x] of Object.entries(v)) {
+        const key = MAP[k] || k;
+        out[key] = key in out ? better(out[key], walk(x)) : walk(x);
+      }
+      return out;
+    }
+    return v;
+  };
+  const { name, ...rest } = h; // o nome é texto livre: não mexe
+  return { ...walk(rest), name };
 }
 
 function saveHero() {
@@ -3258,14 +3292,14 @@ function drawTile(g, s, el, rand) {
 
   // Brilho superior
   const gloss = g.createLinearGradient(0, y0, 0, s * 0.55);
-  gloss.addColorStop(0, "rgba(255,255,255,0.30)");
+  gloss.addColorStop(0, el.matte ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.30)");
   gloss.addColorStop(1, "rgba(255,255,255,0)");
   g.fillStyle = gloss;
   g.fillRect(0, 0, s, s * 0.55);
 
   // Filete de luz logo dentro do contorno (canto superior esquerdo mais forte)
   const edge = g.createLinearGradient(x0, y0, x1, y1);
-  edge.addColorStop(0, "rgba(255,255,255,0.75)");
+  edge.addColorStop(0, el.matte ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.75)");
   edge.addColorStop(0.5, "rgba(255,255,255,0.15)");
   edge.addColorStop(1, "rgba(255,255,255,0)");
   roundRectOn(g, x0 + s * 0.03, y0 + s * 0.03, x1 - x0 - s * 0.06, y1 - y0 - s * 0.06, s * 0.06);
@@ -3462,17 +3496,26 @@ function texturePlant(g, s, rand) {
   }
 }
 
-function textureOrganic(g, s, rand) {
-  for (let i = 0; i < 220; i++) {
-    g.fillStyle = `rgba(190,170,255,${0.03 + rand() * 0.06})`;
-    g.fillRect(rand() * s, rand() * s, s * 0.012, s * 0.012);
+/** Metal polido: riscos de escovado, faixa diagonal de brilho forte e rebites nos cantos. */
+function textureMetal(g, s, rand) {
+  for (let i = 0; i < 46; i++) {
+    const y = rand() * s, x = rand() * s * 0.6, len = s * (0.15 + rand() * 0.5);
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (rand() - 0.5) * s * 0.03);
+    g.strokeStyle = rand() < 0.5 ? `rgba(255,255,255,${0.12 + rand() * 0.2})` : `rgba(40,60,90,${0.06 + rand() * 0.1})`;
+    g.lineWidth = s * (0.004 + rand() * 0.006);
+    g.stroke();
   }
-  const sheen = g.createLinearGradient(0, 0, s, s);
-  sheen.addColorStop(0.25, "rgba(255,255,255,0)");
-  sheen.addColorStop(0.4, "rgba(255,255,255,0.12)");
-  sheen.addColorStop(0.55, "rgba(255,255,255,0)");
+  const sheen = g.createLinearGradient(0, s, s, 0);
+  sheen.addColorStop(0.30, "rgba(255,255,255,0)");
+  sheen.addColorStop(0.46, "rgba(255,255,255,0.55)");
+  sheen.addColorStop(0.52, "rgba(255,255,255,0.15)");
+  sheen.addColorStop(0.60, "rgba(255,255,255,0.40)");
+  sheen.addColorStop(0.72, "rgba(255,255,255,0)");
   g.fillStyle = sheen;
   g.fillRect(0, 0, s, s);
+  for (const [fx, fy] of [[0.22, 0.22], [0.78, 0.22], [0.22, 0.78], [0.78, 0.78]]) {
+    sphere(g, s * fx, s * fy, s * 0.028, ["#ffffff", "#c6d2e0", "#56657a"], "#2a3442");
+  }
 }
 
 // ---------- Ícones ----------
@@ -3680,27 +3723,31 @@ function iconPlant(g, s) {
   }
 }
 
-function iconOrganic(g, s) {
-  const cx = s / 2, cy = s * 0.5, R = s * 0.28;
-  const P = (x, y) => [cx + x * R, cy + y * R];
-  const carbons = [P(-0.42, 0), P(0.42, 0)];
-  const hydrogens = [
-    [0, P(-0.7, -0.66)], [0, P(-1.0, 0.04)], [0, P(-0.7, 0.7)],
-    [1, P(0.7, -0.66)],  [1, P(1.0, 0.04)],  [1, P(0.7, 0.7)],
-  ];
-  // Ligações (bastões)
-  const bonds = [[carbons[0], carbons[1]], ...hydrogens.map(([c, h]) => [carbons[c], h])];
-  g.lineCap = "round";
-  for (const [lw, color] of [[R * 0.17, "#08090c"], [R * 0.1, "#dfe6ee"], [R * 0.035, "rgba(255,255,255,0.9)"]]) {
-    g.lineWidth = lw;
-    g.strokeStyle = color;
-    for (const [[ax, ay], [bx, by]] of bonds) {
-      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+/** Metal: pilha de três lingotes escuros (dois embaixo, um em cima), com arestas de luz. */
+function iconMetal(g, s) {
+  const bar = (cx, cy, w) => {
+    const h = w * 0.36, d = w * 0.22;          // altura da frente e profundidade do topo
+    const fx0 = cx - w / 2, fx1 = cx + w / 2, fy0 = cy - h / 2, fy1 = cy + h / 2;
+    const front = () => { g.beginPath(); g.moveTo(fx0, fy0); g.lineTo(fx1, fy0); g.lineTo(fx1 - w * 0.06, fy1); g.lineTo(fx0 + w * 0.06, fy1); g.closePath(); };
+    const top = () => { g.beginPath(); g.moveTo(fx0, fy0); g.lineTo(fx0 + d, fy0 - d * 0.75); g.lineTo(fx1 - d * 0.4, fy0 - d * 0.75); g.lineTo(fx1, fy0); g.closePath(); };
+    const ff = g.createLinearGradient(0, fy0, 0, fy1);
+    ff.addColorStop(0, "#5a6270"); ff.addColorStop(1, "#1d2129");
+    const tf = g.createLinearGradient(fx0, fy0 - d, fx1, fy0);
+    tf.addColorStop(0, "#9aa4b4"); tf.addColorStop(1, "#3c434f");
+    g.lineJoin = "round";
+    for (const [shape, fill] of [[front, ff], [top, tf]]) {
+      shape();
+      g.fillStyle = fill; g.fill();
+      g.lineWidth = Math.max(1, s * 0.022); g.strokeStyle = "#0b0e13"; g.stroke();
+      g.lineWidth = Math.max(1, s * 0.008); g.strokeStyle = "rgba(235,245,255,0.75)"; g.stroke();
     }
-  }
-  // Esferas: hidrogênios brancos, carbonos em roxo vivo
-  for (const [, [x, y]] of hydrogens) sphere(g, x, y, R * 0.19, ["#ffffff", "#eef2f6", "#9aa6b2"], "#2a2f36");
-  for (const [x, y] of carbons) sphere(g, x, y, R * 0.27, ["#f2d6ff", "#a64dff", "#3d0a78"], "#1a0533");
+    g.fillStyle = "rgba(255,255,255,0.18)";
+    g.fillRect(fx0 + w * 0.12, fy0 + h * 0.2, w * 0.5, h * 0.12);
+  };
+  const w = s * 0.38;
+  bar(s * 0.31, s * 0.66, w);
+  bar(s * 0.69, s * 0.66, w);
+  bar(s * 0.50, s * 0.45, w);
 }
 
 /* =========================================================
