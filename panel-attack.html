@@ -280,6 +280,157 @@
   .actions.row { flex-direction: row; flex-wrap: wrap; }
   .actions.row .menu-btn { flex: 1 1 200px; }
   .help .muted { color: var(--muted); }
+  /* ---------- Single Player / criação de personagem / mapa ---------- */
+  .create-step { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .step-hint { margin: 0; color: var(--muted); font-size: 14px; text-align: center; }
+  .gender-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; padding-block: 8px; }
+  .gender-btn {
+    width: 132px;
+    height: 132px;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    background: var(--panel-2);
+    color: var(--g);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .gender-btn svg { width: 64px; height: 64px; }
+  .gender-btn.female { --g: #ff6fa8; }
+  .gender-btn.male { --g: #57a6ff; }
+  .gender-btn:hover, .gender-btn:focus-visible {
+    outline: none;
+    border-color: var(--g);
+    transform: scale(1.05);
+    background: color-mix(in srgb, var(--g) 16%, var(--panel-2));
+  }
+  .char-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 820px) {
+    .char-grid { grid-template-columns: repeat(8, 1fr); }
+  }
+  .char-card {
+    position: relative;
+    padding: 10px 4px 6px;
+    border-radius: 10px;
+    border: 2px solid var(--line);
+    background: var(--panel-2);
+    cursor: pointer;
+    display: grid;
+    place-items: end center;
+    height: 178px;
+  }
+  .char-card:hover, .char-card:focus-visible { outline: none; border-color: var(--accent); background: #2f3450; }
+  .char-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .char-num {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: #14161f;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
+  .char-art { height: 156px; max-width: 100%; object-fit: contain; display: block; }
+  .char-placeholder {
+    height: 150px;
+    width: 76px;
+    border: 2px dashed var(--line);
+    border-radius: 38px 38px 10px 10px;
+    color: var(--muted);
+    font-size: 28px;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+  }
+  .name-step { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; width: 100%; }
+  .name-preview { height: 200px; display: grid; place-items: end center; }
+  .name-preview .char-art { height: 200px; }
+  .name-form { display: flex; flex-direction: column; gap: 10px; width: min(280px, 100%); }
+  .name-form input {
+    font: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 12px 14px;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 2px solid var(--line);
+    border-radius: 8px;
+  }
+  .name-form input:focus { outline: none; border-color: var(--accent); }
+  .map-wrap { width: 100%; }
+  .map { position: relative; width: min(560px, 100%); aspect-ratio: 1; margin: 0 auto; }
+  .map-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .map-lines line { stroke: #4b5170; stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .map-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 34%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    background: radial-gradient(circle at 50% 35%, #34395a, var(--panel-2) 70%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    padding-bottom: 7%;
+    gap: 1%;
+  }
+  .hero-art { position: relative; height: 66%; width: 100%; flex: none; }
+  .hero-art > * { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; }
+  .hero-art .char-art { width: auto; max-width: none; }
+  .hero-art .char-placeholder { width: auto; aspect-ratio: 1 / 2; font-size: 20px; }
+  .hero-name {
+    font-family: var(--display);
+    font-size: clamp(14px, 3.6vw, 22px);
+    letter-spacing: 1px;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .biome {
+    position: absolute;
+    width: 23%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.28);
+    background: radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.38), transparent 58%), var(--c);
+    box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.22), 0 4px 0 rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font: inherit;
+    font-weight: 800;
+    font-size: clamp(10px, 2.5vw, 14px);
+    line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3%;
+    transition: transform .12s ease;
+  }
+  .biome svg { width: 40%; height: auto; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+  .biome small { font-size: 0.78em; font-weight: 700; opacity: 0.9; }
+  .biome:hover, .biome:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; transform: translate(-50%, -50%) scale(1.07); }
+  .match-sub { color: var(--muted); font-size: 13px; margin: -6px 0 10px; }
+
   .toast {
     position: fixed;
     left: 50%;
@@ -311,12 +462,92 @@
       </div>
       <div class="tiles" id="menuTiles" aria-hidden="true"></div>
       <nav class="menu-list" id="menuList">
-        <button class="menu-btn primary" id="btnEndless">Jogar Endless <span aria-hidden="true">▶</span></button>
-        <button class="menu-btn" disabled>Puzzle Mode <span class="badge">Em breve</span></button>
-        <button class="menu-btn" disabled>Campanha <span class="badge">Em breve</span></button>
+        <button class="menu-btn primary" id="btnSingle">Single Player <span aria-hidden="true">▶</span></button>
+        <button class="menu-btn" disabled>Multiplayer <span class="badge">Em breve</span></button>
         <button class="menu-btn" id="btnOptions">Opções / Créditos</button>
       </nav>
       <div class="menu-hint" id="menuHint">↑ ↓ para escolher · Enter para confirmar</div>
+    </div>
+  </section>
+
+  <!-- ======================= SINGLE PLAYER ======================= -->
+  <section id="singleScreen" class="screen" hidden>
+    <div class="menu-card">
+      <h2 class="opt-title">Single Player</h2>
+      <nav class="menu-list">
+        <button class="menu-btn primary" id="btnCampaign">Campanha <span aria-hidden="true">▶</span></button>
+        <button class="menu-btn" id="btnEndless">Endless <span aria-hidden="true">▶</span></button>
+        <button class="menu-btn" disabled>Puzzle Mode <span class="badge">Em breve</span></button>
+      </nav>
+      <div class="actions">
+        <button class="menu-btn" id="btnSingleBack">Voltar <kbd>Esc</kbd></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CRIAÇÃO DE PERSONAGEM ======================= -->
+  <section id="createScreen" class="screen" hidden>
+    <div class="menu-card wide">
+      <h2 class="opt-title">Criar personagem</h2>
+
+      <!-- 1. Gênero: só os símbolos, sem texto -->
+      <div class="create-step" id="stepGender">
+        <div class="gender-row">
+          <button class="gender-btn male" data-gender="m" aria-label="Masculino">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="26" cy="38" r="15"/><path d="M37 27 54 10M41 10h13v13"/>
+            </svg>
+          </button>
+          <button class="gender-btn female" data-gender="f" aria-label="Feminino">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" aria-hidden="true">
+              <circle cx="32" cy="23" r="15"/><path d="M32 38v21M22 50h20"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Personagem: só a fileira do gênero escolhido -->
+      <div class="create-step" id="stepCharacter" hidden>
+        <p class="step-hint">Escolha seu personagem</p>
+        <div class="char-grid" id="charGrid"></div>
+      </div>
+
+      <!-- 3. Nome -->
+      <div class="create-step" id="stepName" hidden>
+        <div class="name-step">
+          <div class="name-preview" id="namePreview"></div>
+          <form class="name-form" id="nameForm">
+            <label class="opt-label" for="heroName">Nome do personagem</label>
+            <input type="text" id="heroName" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Humano">
+            <button class="menu-btn primary" type="submit" id="btnNameConfirm">Confirmar <span aria-hidden="true">▶</span></button>
+          </form>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="menu-btn" id="btnCreateBack">Voltar <kbd>Esc</kbd></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= MAPA DA CAMPANHA ======================= -->
+  <section id="mapScreen" class="screen" hidden>
+    <div class="menu-card wide">
+      <h2 class="opt-title">Campanha</h2>
+      <p class="step-hint">Escolha um bioma para jogar</p>
+      <div class="map-wrap">
+        <div class="map" id="campaignMap">
+          <svg class="map-lines" id="mapLines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="map-center" id="mapCenter">
+            <div class="hero-art" id="mapHeroArt"></div>
+            <div class="hero-name" id="mapHeroName">Humano</div>
+          </div>
+        </div>
+      </div>
+      <div class="actions row">
+        <button class="menu-btn" id="btnNewHero">Novo personagem</button>
+        <button class="menu-btn" id="btnMapBack">Voltar <kbd>Esc</kbd></button>
+      </div>
     </div>
   </section>
 
@@ -416,7 +647,7 @@
           <button class="menu-btn primary" id="btnResume" data-no-click-sound>Continuar <kbd id="resumeKey">Esc</kbd></button>
           <button class="menu-btn" id="btnPauseRestart">Reiniciar <kbd id="pauseRestartKey">R</kbd></button>
           <button class="menu-btn" id="btnPauseOptions">Opções <kbd>O</kbd></button>
-          <button class="menu-btn" id="btnPauseMenu">Voltar ao Menu <kbd>M</kbd></button>
+          <button class="menu-btn" id="btnPauseMenu"><span class="menu-target">Voltar ao Menu</span> <kbd>M</kbd></button>
         </div>
       </div>
 
@@ -429,13 +660,14 @@
         </dl>
         <div class="actions">
           <button class="menu-btn primary" id="btnPlayAgain">Jogar Novamente <kbd>Enter</kbd></button>
-          <button class="menu-btn" id="btnGameOverMenu">Voltar ao Menu <kbd>Esc</kbd></button>
+          <button class="menu-btn" id="btnGameOverMenu"><span class="menu-target">Voltar ao Menu</span> <kbd>Esc</kbd></button>
         </div>
       </div>
     </div>
 
     <div id="side">
-      <h1>ENDLESS</h1>
+      <h1 id="matchTitle">ENDLESS</h1>
+      <div class="match-sub" id="matchSub" hidden></div>
       <div class="stats">
         <div class="stat wide"><div class="label">Tempo</div><div class="value" id="timer">00:00</div></div>
         <div class="stat wide"><div class="label">Pontos</div><div class="value" id="score">0</div></div>
@@ -1074,7 +1306,10 @@ function isInDanger() {
    SCREENS / MENU
    Três telas: menu principal, opções e jogo.
    ========================================================= */
-const Screen = { MENU: "menu", OPTIONS: "options", CONTROLS: "controls", GAME: "game" };
+const Screen = {
+  MENU: "menu", SINGLE: "single", CREATE: "create", MAP: "map",
+  OPTIONS: "options", CONTROLS: "controls", GAME: "game",
+};
 let currentScreen = Screen.MENU;
 let optionsReturn = Screen.MENU; // para onde "Voltar" leva a partir das Opções
 
@@ -1083,6 +1318,9 @@ const screens = {
   [Screen.MENU]: $("menuScreen"),
   [Screen.OPTIONS]: $("optionsScreen"),
   [Screen.CONTROLS]: $("controlsScreen"),
+  [Screen.SINGLE]: $("singleScreen"),
+  [Screen.CREATE]: $("createScreen"),
+  [Screen.MAP]: $("mapScreen"),
   [Screen.GAME]: $("gameScreen"),
 };
 
@@ -1093,7 +1331,12 @@ function showScreen(name) {
   input.keysDown.clear();
   input.padTurbo = false;
   input.turbo = false;
-  if (name === Screen.MENU) $("btnEndless").focus();
+  if (name === Screen.MENU) $("btnSingle").focus();
+  if (name === Screen.SINGLE) $("btnCampaign").focus();
+  if (name === Screen.MAP) {
+    renderMap();
+    screens[Screen.MAP].querySelector(".biome").focus();
+  }
   if (name === Screen.OPTIONS) $("optMusicOn").focus();
   if (name === Screen.CONTROLS) {
     setBindStatus(BIND_STATUS_IDLE);
@@ -1108,14 +1351,36 @@ function showScreen(name) {
   }
 }
 
+// Modo da partida atual: Endless avulso ou uma fase da Campanha (bioma)
+let match = { mode: "endless", biome: null };
+
 function startEndless() {
+  match = { mode: "endless", biome: null };
+  startMatch();
+}
+
+function startCampaignMatch(biome) {
+  match = { mode: "campaign", biome };
+  startMatch(); // por enquanto, cada bioma é uma partida no modo Endless
+}
+
+function startMatch() {
+  const campaign = match.mode === "campaign";
+  $("matchTitle").textContent = campaign ? match.biome.name.toUpperCase() : "ENDLESS";
+  $("matchSub").hidden = !campaign;
+  $("matchSub").textContent = campaign ? `${hero.name} · Campanha` : "";
+  document.querySelectorAll(".menu-target").forEach(el => {
+    el.textContent = campaign ? "Voltar ao Mapa" : "Voltar ao Menu";
+  });
+  $("menuBtn").textContent = campaign ? "Mapa" : "Menu";
   restart();
   showScreen(Screen.GAME);
 }
 
+/** Sair da partida: volta ao mapa (Campanha) ou ao menu Single Player (Endless). */
 function goToMenu() {
   optionsReturn = Screen.MENU;
-  showScreen(Screen.MENU);
+  showScreen(match.mode === "campaign" ? Screen.MAP : Screen.SINGLE);
 }
 
 function openOptions(from) {
@@ -1131,6 +1396,9 @@ function closeOptions() {
 function goBack() {
   if (currentScreen === Screen.CONTROLS) showScreen(Screen.OPTIONS);
   else if (currentScreen === Screen.OPTIONS) closeOptions();
+  else if (currentScreen === Screen.SINGLE) showScreen(Screen.MENU);
+  else if (currentScreen === Screen.CREATE) createBack();
+  else if (currentScreen === Screen.MAP) showScreen(Screen.SINGLE);
 }
 
 /** Liga um grupo de botões segmentados a uma chave de `settings`. */
@@ -1175,7 +1443,13 @@ function bindSlider(id, key) {
   });
 }
 
+$("btnSingle").addEventListener("click", () => showScreen(Screen.SINGLE));
+$("btnSingleBack").addEventListener("click", () => showScreen(Screen.MENU));
 $("btnEndless").addEventListener("click", startEndless);
+$("btnCampaign").addEventListener("click", openCampaign);
+$("btnCreateBack").addEventListener("click", createBack);
+$("btnNewHero").addEventListener("click", startCreation);
+$("btnMapBack").addEventListener("click", () => showScreen(Screen.SINGLE));
 $("btnOptions").addEventListener("click", () => openOptions(Screen.MENU));
 $("btnOptionsBack").addEventListener("click", closeOptions);
 $("btnControls").addEventListener("click", () => showScreen(Screen.CONTROLS));
@@ -1216,6 +1490,174 @@ function showToast(text) {
 }
 
 /* =========================================================
+   CAMPAIGN (criação de personagem + mapa)
+   Os sprites ficam em characters/char_01.png … char_16.png (recortados
+   da folha de referência por characters/extract_sprites.py). Se um
+   arquivo não carregar, aparece um marcador numerado no lugar.
+   ========================================================= */
+const CHARACTER_DIR = "characters/";
+const CHARACTERS = Array.from({ length: 16 }, (_, i) => ({
+  id: i + 1,
+  gender: i < 8 ? "f" : "m",            // fileira de cima: 1–8 · fileira de baixo: 9–16
+  sprite: `char_${String(i + 1).padStart(2, "0")}.png`,
+}));
+const DEFAULT_HERO_NAME = "Humano";
+const HERO_KEY = "panelAttack.hero";
+
+const BIOMES = [
+  { id: "earth",  name: "Terra",    color: "#c4733a",
+    icon: '<path d="M3 17.5 6 10l5-4.5 6.5 2.5 3.5 7-3 4H6.5z" fill="currentColor"/><path d="M10 9.5 12 13l-1.5 3" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.4" stroke-linecap="round"/>' },
+  { id: "forest", name: "Floresta", color: "#2f9e46",
+    icon: '<path d="M12 2.5 17 9h-2.6l3.8 5.2h-3.3L19 20H5l4.1-5.8H5.8L9.6 9H7z" fill="currentColor"/><rect x="10.9" y="19.5" width="2.2" height="3" fill="currentColor"/>' },
+  { id: "metal",  name: "Metal",    color: "#7d8a9c",
+    icon: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-dasharray="2.6 2.63"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="2.6"/>' },
+  { id: "fire",   name: "Fogo",     color: "#e8501f",
+    icon: '<path d="M12 2c1 4 6.2 6.4 6.2 12.2a6.2 6.2 0 0 1-12.4 0c0-3 1.5-5.1 3-7 .3 2 1.2 3.3 2.3 3.6C10.9 7 11 4.6 12 2z" fill="currentColor"/>' },
+  { id: "fungi",  name: "Orgânico", sub: "Fungos", color: "#8e4fd8",
+    icon: '<path d="M2.5 12.2a9.5 8.4 0 0 1 19 0z" fill="currentColor"/><path d="M9.4 12.2h5.2l.9 7.8a1 1 0 0 1-1 1.1H9.5a1 1 0 0 1-1-1.1z" fill="currentColor"/><circle cx="8" cy="8.6" r="1.4" fill="rgba(0,0,0,.25)"/><circle cx="14.6" cy="7" r="1.1" fill="rgba(0,0,0,.25)"/>' },
+  { id: "air",    name: "Ar",       color: "#2fb5d9",
+    icon: '<path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>' },
+];
+const MAP_RADIUS = 36; // distância dos biomas ao centro, em % do mapa
+
+let hero = loadHero();                       // personagem salvo (ou null)
+const draft = { gender: null, id: null };    // escolhas durante a criação
+let createStep = "gender";
+
+function loadHero() {
+  try {
+    const h = JSON.parse(localStorage.getItem(HERO_KEY) || "null");
+    if (h && CHARACTERS.some(c => c.id === h.id) && typeof h.name === "string") return h;
+  } catch { /* sem personagem salvo */ }
+  return null;
+}
+
+function saveHero() {
+  try { localStorage.setItem(HERO_KEY, JSON.stringify(hero)); } catch { /* sem armazenamento */ }
+}
+
+/** Arte de um personagem: o sprite, ou um marcador numerado se o arquivo faltar. */
+function characterArt(id) {
+  const ch = CHARACTERS.find(c => c.id === id);
+  const img = document.createElement("img");
+  img.className = "char-art";
+  img.alt = "";
+  img.src = CHARACTER_DIR + ch.sprite;
+  img.addEventListener("error", () => {
+    const ph = document.createElement("div");
+    ph.className = "char-placeholder";
+    ph.textContent = id;
+    img.replaceWith(ph);
+  }, { once: true });
+  return img;
+}
+
+/** Campanha no menu: com personagem salvo vai direto ao mapa; senão, cria um. */
+function openCampaign() {
+  if (hero) showScreen(Screen.MAP);
+  else startCreation();
+}
+
+function startCreation() {
+  draft.gender = null;
+  draft.id = null;
+  showScreen(Screen.CREATE);
+  showCreateStep("gender");
+}
+
+function showCreateStep(step) {
+  createStep = step;
+  $("stepGender").hidden = step !== "gender";
+  $("stepCharacter").hidden = step !== "character";
+  $("stepName").hidden = step !== "name";
+  if (step === "gender") {
+    screens[Screen.CREATE].querySelector(`.gender-btn[data-gender="${draft.gender || "m"}"]`).focus();
+  } else if (step === "character") {
+    renderCharacterGrid();
+    const sel = $("charGrid").querySelector('[aria-pressed="true"]') || $("charGrid").querySelector(".char-card");
+    sel.focus();
+  } else {
+    $("namePreview").replaceChildren(characterArt(draft.id));
+    $("heroName").value = hero && hero.id === draft.id ? hero.name : "";
+    $("heroName").focus();
+  }
+}
+
+function renderCharacterGrid() {
+  const grid = $("charGrid");
+  grid.replaceChildren();
+  for (const ch of CHARACTERS.filter(c => c.gender === draft.gender)) {
+    const b = document.createElement("button");
+    b.className = "char-card";
+    b.setAttribute("aria-label", `Personagem ${ch.id}`);
+    b.setAttribute("aria-pressed", String(draft.id === ch.id));
+    const num = document.createElement("span");
+    num.className = "char-num";
+    num.textContent = ch.id;
+    b.append(num, characterArt(ch.id));
+    b.addEventListener("click", () => {
+      draft.id = ch.id;
+      showCreateStep("name");
+    });
+    grid.appendChild(b);
+  }
+}
+
+/** Voltar dentro da criação: nome → personagem → gênero → Single Player. */
+function createBack() {
+  if (createStep === "name") showCreateStep("character");
+  else if (createStep === "character") showCreateStep("gender");
+  else showScreen(Screen.SINGLE);
+}
+
+document.querySelectorAll(".gender-btn").forEach(b => b.addEventListener("click", () => {
+  if (draft.gender !== b.dataset.gender) draft.id = null;
+  draft.gender = b.dataset.gender;
+  showCreateStep("character");
+}));
+
+$("nameForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("heroName").value.replace(/\s+/g, " ").trim() || DEFAULT_HERO_NAME;
+  hero = { gender: draft.gender, id: draft.id, name };
+  saveHero();
+  Sound.play("uiClick");
+  showScreen(Screen.MAP);
+});
+
+/** Monta os biomas em volta do centro (uma vez) e as linhas retas até eles. */
+function buildMap() {
+  const mapEl = $("campaignMap");
+  const svgNS = "http://www.w3.org/2000/svg";
+  BIOMES.forEach((biome, i) => {
+    const angle = (-90 + i * 60) * Math.PI / 180;
+    const x = 50 + MAP_RADIUS * Math.cos(angle);
+    const y = 50 + MAP_RADIUS * Math.sin(angle);
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", 50); line.setAttribute("y1", 50);
+    line.setAttribute("x2", x); line.setAttribute("y2", y);
+    $("mapLines").appendChild(line);
+
+    const b = document.createElement("button");
+    b.className = "biome";
+    b.style.left = x + "%";
+    b.style.top = y + "%";
+    b.style.setProperty("--c", biome.color);
+    b.setAttribute("aria-label", `${i + 1}. ${biome.name}${biome.sub ? ` (${biome.sub})` : ""}`);
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${biome.icon}</svg>`
+      + `<span>${biome.name}</span>${biome.sub ? `<small>(${biome.sub})</small>` : ""}`;
+    b.addEventListener("click", () => startCampaignMatch(biome));
+    mapEl.appendChild(b);
+  });
+}
+
+function renderMap() {
+  const h = hero || { id: null, name: DEFAULT_HERO_NAME };
+  $("mapHeroName").textContent = h.name;
+  $("mapHeroArt").replaceChildren(...(h.id ? [characterArt(h.id)] : []));
+}
+
+/* =========================================================
    INPUT
    Teclado e controle funcionam ao mesmo tempo. Os dois são traduzidos
    para as mesmas ações (ACTIONS) usando o mapeamento em `bindings`.
@@ -1239,6 +1681,14 @@ function runAction(action, repeat) {
 document.addEventListener("keydown", (e) => {
   input.lastDevice = "keyboard";
   if (capture) { handleCaptureKey(e); return; }
+  // Digitando o nome: as teclas são texto (Enter confirma pelo formulário, Esc volta)
+  if (e.target instanceof HTMLInputElement && e.target.type === "text") {
+    if (e.code === "Escape") {
+      e.preventDefault();
+      goBack();
+    }
+    return;
+  }
   input.keysDown.add(e.code);
   if (currentScreen === Screen.GAME) handleGameKey(e);
   else handleMenuKey(e);
@@ -1313,7 +1763,7 @@ function uiRoot() {
 }
 
 function uiFocusables(root) {
-  return [...root.querySelectorAll('button:not(:disabled), input[type="range"]')]
+  return [...root.querySelectorAll('button:not(:disabled), input[type="range"], input[type="text"]')]
     .filter(el => el.offsetParent !== null);
 }
 
@@ -2697,6 +3147,7 @@ function restart() {
 }
 
 renderMenuTiles();
+buildMap();
 renderHelp();
 refreshPadStatus();
 showScreen(Screen.MENU);
