@@ -490,6 +490,112 @@
     font-weight: 600;
     z-index: 10;
   }
+  /* ---------- Mascotes ----------
+     Camadas: .mascot (lado/tamanho) › .mascot-react (reação curta) ›
+     .mascot-idle (jeito de cada um, parado) › img. Tempos e tamanhos vêm
+     das constantes MASCOT_* (viram variáveis CSS no boot). */
+  .mascot { position: relative; width: 100%; height: 100%; --dir: 1; --face: 1; --idle-ms: 2000ms; --react-ms: 800ms; }
+  .mascot-react, .mascot-idle { position: absolute; inset: 0; transform-origin: 50% 100%; }
+  .mascot-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%;
+                transform: scaleX(var(--face)); filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+  .mascot-ph { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); height: 80%; aspect-ratio: 1;
+               border-radius: 50% 50% 42% 42%; background: var(--mc, #667); border: 2px solid rgba(255,255,255,.35);
+               display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1em; }
+  .mascot-shadow { display: none; position: absolute; left: 22%; right: 22%; bottom: -4%; height: 8%; border-radius: 50%;
+                   background: rgba(0,0,0,.35); filter: blur(1px); }
+  .mascot-pop { position: absolute; left: 50%; top: -6%; transform: translateX(-50%); font-family: var(--display);
+                font-size: 15px; color: #ffe35a; text-shadow: 0 2px 0 #7a3b00, 0 0 6px rgba(0,0,0,.6); pointer-events: none;
+                white-space: nowrap; animation: m-pop var(--react-ms) ease-out forwards; }
+  .mascot.locked .mascot-img { animation: none !important; filter: brightness(0) opacity(.55) !important; } /* vence o brilho do idle */
+  .mascot.locked .mascot-ph { background: #111; color: #444; }
+
+  /* Parado (idle): cada mascote com o seu jeito */
+  .mascot[data-id="gotico"] .mascot-idle { animation: m-jelly var(--idle-ms) ease-in-out infinite; }
+  .mascot[data-id="fornalinho"] .mascot-idle { animation: m-impatient var(--idle-ms) ease-out infinite; }
+  .mascot[data-id="fornalinho"] .mascot-img { animation: m-glow-fire calc(var(--idle-ms) * .8) ease-in-out infinite; }
+  .mascot[data-id="seixo"] .mascot-idle { animation: m-breathe var(--idle-ms) ease-in-out infinite; }
+  .mascot[data-id="brisa"] .mascot-idle { animation: m-float var(--idle-ms) ease-in-out infinite; }
+  .mascot[data-id="brisa"] .mascot-shadow { display: block; animation: m-float-shadow var(--idle-ms) ease-in-out infinite; }
+  .mascot[data-id="bonsai"] .mascot-idle { animation: m-sway var(--idle-ms) ease-in-out infinite; }
+  .mascot[data-id="rebite"] .mascot-idle { animation: m-tick var(--idle-ms) infinite; }
+  .mascot[data-id="rebite"] .mascot-img { animation: m-glow-blue calc(var(--idle-ms) * 2) linear infinite; }
+  .mascot[data-react] .mascot-idle, .mascot[data-react] .mascot-img, .mascot[data-react] .mascot-shadow { animation: none; }
+
+  /* Reações (duração em --react-ms) */
+  .mascot[data-react="hop"] .mascot-react { animation: m-hop var(--react-ms) ease-out; }
+  .mascot[data-react="bigjump"] .mascot-react { animation: m-bigjump var(--react-ms) ease-out; }
+  .mascot[data-react="lunge"] .mascot-react { animation: m-lunge var(--react-ms) ease-in-out; }
+  .mascot[data-react="shake"] .mascot-react { animation: m-shake var(--react-ms) linear; }
+  .mascot[data-react="shiver"] .mascot-react { animation: m-shake var(--react-ms) linear infinite; }
+  .mascot[data-react="win"] .mascot-react { animation: m-hop var(--react-ms) ease-out infinite; }
+  .mascot[data-react="lose"] .mascot-react { animation: m-lose var(--react-ms) ease-in forwards; }
+
+  @keyframes m-jelly { 0%, 100% { transform: scale(1, 1); } 25% { transform: scale(1.05, .95); } 50% { transform: scale(.97, 1.03); } 75% { transform: scale(1.02, .98); } }
+  @keyframes m-impatient { 0%, 30%, 60%, 100% { transform: translateY(0) scale(1, 1); } 8%, 38% { transform: translateY(0) scale(1.05, .94); }
+                           15%, 45% { transform: translateY(-9%) scale(.97, 1.04); } 24%, 54% { transform: translateY(0) scale(1.03, .97); } }
+  @keyframes m-glow-fire { 0%, 100% { filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)) drop-shadow(0 0 2px rgba(255,140,30,.3)); }
+                           50% { filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(255,140,30,.95)); } }
+  @keyframes m-breathe { 0%, 100% { transform: scale(1, 1); } 45% { transform: scale(1.02, 1.035); } }
+  @keyframes m-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12%); } }
+  @keyframes m-float-shadow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.65); opacity: .55; } }
+  @keyframes m-sway { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+  @keyframes m-tick { 0%, 18% { transform: rotate(0); } 20%, 38% { transform: rotate(2.5deg); } 40%, 58% { transform: rotate(0); }
+                      60%, 78% { transform: rotate(-2.5deg); } 80%, 100% { transform: rotate(0); } }
+  @keyframes m-glow-blue { 0%, 84%, 92%, 100% { filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+                           87%, 89% { filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)) drop-shadow(0 0 9px rgba(80,170,255,1)); } }
+  @keyframes m-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.08, .9); }
+                     45% { transform: translateY(-16%) scale(.95, 1.06); } 75% { transform: translateY(0) scale(1.05, .95); } }
+  @keyframes m-bigjump { 0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.1, .88); }
+                         40% { transform: translateY(-34%) rotate(calc(var(--dir) * -14deg)); } 60% { transform: translateY(-30%) rotate(calc(var(--dir) * 14deg)); }
+                         85% { transform: translateY(0) rotate(0) scale(1.06, .94); } }
+  @keyframes m-lunge { 0%, 100% { transform: translateX(0) scale(1); } 15% { transform: translateX(calc(var(--dir) * -6%)) scale(.96); }
+                       45% { transform: translateX(calc(var(--dir) * var(--lunge))) scale(1.08); } 70% { transform: translateX(calc(var(--dir) * var(--lunge) * .6)); } }
+  @keyframes m-shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-4%) rotate(-1deg); }
+                       20%, 40%, 60%, 80% { transform: translateX(4%) rotate(1deg); } }
+  @keyframes m-lose { to { transform: translateY(10%) scale(.78) rotate(calc(var(--dir) * -8deg)); opacity: .85; } }
+  @keyframes m-pop { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+                     80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -18px) scale(1); } }
+
+  /* Pausa: tudo congela no lugar */
+  .arena.paused .mascot, .arena.paused .mascot * { animation-play-state: paused !important; }
+
+  /* Onde aparecem */
+  .hud-mascot { position: relative; flex: none; height: var(--mascot-hud-h); width: calc(var(--mascot-hud-h) * 1.1); margin-top: calc(var(--mascot-hud-h) * -0.25); }
+  .mascot-stage { flex: none; align-self: flex-end; width: var(--mascot-solo-w); height: var(--mascot-solo-h); }
+  @media (max-width: 560px) {
+    .hud-mascot { height: var(--mascot-hud-h-narrow); width: calc(var(--mascot-hud-h-narrow) * 1.1); margin-top: 0; }
+    .mascot-stage { width: calc(var(--mascot-solo-w) * .55); height: calc(var(--mascot-solo-h) * .55); }
+  }
+  .biome-mascot { position: absolute; right: -8%; bottom: -8%; width: var(--mascot-map-icon); height: var(--mascot-map-icon);
+                  border-radius: 50%; background: rgba(235, 240, 250, .92); border: 2px solid rgba(0,0,0,.35); padding: 2px;
+                  box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+  .biome-mascot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .biome-mascot.locked img { filter: brightness(0) opacity(.7); }
+
+  /* Tela de mascotes */
+  .mascot-grid { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 520px) { .mascot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .mascot-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 8px;
+                 background: var(--panel-2); color: var(--text); border: 2px solid var(--line); border-radius: 10px;
+                 font: inherit; cursor: pointer; min-width: 0; }
+  .mascot-card .mascot-box { width: 100%; height: var(--mascot-card-h); }
+  .mascot-card b { font-family: var(--display); font-size: 16px; letter-spacing: .5px; }
+  .mascot-card small { color: var(--muted); font-size: 12px; line-height: 1.25; text-align: center; }
+  .mascot-card[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--panel-2)); }
+  .mascot-card[aria-disabled="true"] { cursor: default; opacity: .85; }
+  .mascot-card:focus-visible, .mascot-card:hover { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* "Novo mascote!" no fim da partida da campanha */
+  .new-mascot { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px;
+                background: color-mix(in srgb, #ffd23f 14%, var(--panel)); border: 2px solid #ffd23f; max-width: 100%; }
+  .new-mascot .mascot-box { width: var(--mascot-new-h); height: var(--mascot-new-h); flex: none; }
+  .new-mascot h3 { margin: 0; color: #ffd23f; font-family: var(--display); font-size: 18px; letter-spacing: 1px; }
+  .new-mascot p { margin: 2px 0 0; font-size: 13px; }
+
+  /* Movimento reduzido: só troca a expressão, sem pulos nem tremidas */
+  @media (prefers-reduced-motion: reduce) {
+    .mascot, .mascot * { animation: none !important; }
+  }
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; }
   }
@@ -510,6 +616,7 @@
         <button class="menu-btn primary" id="btnSingle">Single Player <span aria-hidden="true">▶</span></button>
         <button class="menu-btn" id="btnVersus">Versus vs IA <span aria-hidden="true">▶</span></button>
         <button class="menu-btn" disabled>Multiplayer <span class="badge">Em breve</span></button>
+        <button class="menu-btn" id="btnMascots">Mascotes <span aria-hidden="true">▶</span></button>
         <button class="menu-btn" id="btnOptions">Opções / Créditos</button>
       </nav>
       <div class="menu-hint" id="menuHint">↑ ↓ para escolher · Enter para confirmar</div>
@@ -615,6 +722,19 @@
     </div>
   </section>
 
+  <!-- ======================= MASCOTES ======================= -->
+  <section id="mascotsScreen" class="screen" hidden>
+    <div class="menu-card wide">
+      <h2 class="opt-title">Mascotes</h2>
+      <p class="step-hint">Escolha quem acompanha você nas partidas</p>
+      <div class="mascot-grid" id="mascotGrid"></div>
+      <div class="actions row">
+        <button class="menu-btn" id="btnMascotNone">Nenhum</button>
+        <button class="menu-btn" id="btnMascotsBack">Voltar <kbd>Esc</kbd></button>
+      </div>
+    </div>
+  </section>
+
   <!-- ======================= OPÇÕES / CRÉDITOS ======================= -->
   <section id="optionsScreen" class="screen" hidden>
     <div class="menu-card">
@@ -707,6 +827,7 @@
       <div class="board-col p1" id="p1Col">
         <div class="board-hud" id="p1Hud" hidden>
           <div class="hud-art"></div>
+          <div class="hud-mascot" hidden></div>
           <div class="hud-info"><div class="hud-name"></div><div class="hud-tag">Você</div></div>
           <div class="hud-crystal" title="Cristal sendo montado">
             <div class="crystal-mini"></div>
@@ -721,6 +842,7 @@
       <div class="board-col p2" id="p2Col" hidden>
         <div class="board-hud" id="p2Hud">
           <div class="hud-art"></div>
+          <div class="hud-mascot" hidden></div>
           <div class="hud-info"><div class="hud-name"></div><div class="hud-tag">IA</div></div>
           <div class="hud-crystal" title="Cristal sendo montado">
             <div class="crystal-mini"></div>
@@ -731,6 +853,9 @@
           <canvas id="board2" class="board-canvas" aria-label="Tabuleiro da IA"></canvas>
         </div>
       </div>
+
+      <!-- Endless: o mascote do jogador fica ao lado do tabuleiro -->
+      <div class="mascot-stage" id="soloMascot" hidden></div>
 
       <div class="overlay" id="pauseOverlay" hidden>
         <h2>PAUSADO</h2>
@@ -744,6 +869,10 @@
 
       <div class="overlay" id="gameOverOverlay" hidden>
         <h2 class="danger" id="goTitle">GAME OVER</h2>
+        <div class="new-mascot" id="newMascot" hidden>
+          <div class="mascot-box" id="newMascotArt"></div>
+          <div><h3>Novo mascote!</h3><p><b id="newMascotName"></b>: <span id="newMascotIntro"></span></p></div>
+        </div>
         <dl class="summary">
           <dt>Pontos</dt><dd id="goScore">0</dd>
           <dt>Tempo</dt><dd id="goTime">00:00</dd>
@@ -874,6 +1003,29 @@ const AI_LEVELS = {
   easy:   { label: "Fácil",   moveMs: 220, thinkMs: 560, errorChance: 0.25, depth: 1, slide: 2, turbo: false },
   normal: { label: "Normal",  moveMs: 120, thinkMs: 220, errorChance: 0.08, depth: 2, slide: 4, turbo: true },
   hard:   { label: "Difícil", moveMs: 60,  thinkMs: 80,  errorChance: 0.02, depth: 3, slide: 5, turbo: true },
+};
+// Mascotes (só visuais: não mudam regra, velocidade, pontuação nem cristal)
+const MASCOT_DIR = "mascots/";
+const MASCOT_HUD_HEIGHT_PX = 66;         // altura no HUD do Versus/campanha (o personagem tem 50)
+const MASCOT_HUD_HEIGHT_NARROW_PX = 40;  // telas estreitas: só o mascote, pequeno
+const MASCOT_SOLO_WIDTH_PX = 130;        // Endless: mascote ao lado do tabuleiro
+const MASCOT_SOLO_HEIGHT_PX = 130;
+const MASCOT_CARD_HEIGHT_PX = 110;       // tela de Mascotes
+const MASCOT_NEW_HEIGHT_PX = 84;         // "Novo mascote!"
+const MASCOT_MAP_ICON_PX = 30;           // ícone no mapa
+const MASCOT_LUNGE_PERCENT = 22;         // investida: quanto avança na direção do adversário (% da largura)
+// Período do "parado" de cada um (ms)
+const MASCOT_IDLE_MS = { gotico: 1700, fornalinho: 1500, seixo: 4200, brisa: 2600, bonsai: 4600, rebite: 2400 };
+// Reações: prioridade (maior não é interrompida por menor), expressão, animação e duração (ms)
+const MASCOT_REACTIONS = {
+  win:     { prio: 7, expr: "celebrate", anim: "win",     ms: 650,  loop: true },  // até sair da tela
+  lose:    { prio: 7, expr: "scared",    anim: "lose",    ms: 900,  hold: true },  // fica assim
+  danger:  { prio: 6, expr: "scared",    anim: "shiver",  ms: 320,  loop: true },  // enquanto durar o perigo
+  bigChain:{ prio: 5, expr: "celebrate", anim: "bigjump", ms: 1200 },              // cadeia x3+
+  send:    { prio: 4, expr: "angry",     anim: "lunge",   ms: 700 },               // enviou cristal
+  receive: { prio: 3, expr: "scared",    anim: "shake",   ms: 600 },               // cristal caiu no tabuleiro
+  combo:   { prio: 2, expr: "happy",     anim: "hop",     ms: 800 },               // combo 4+ ou cadeia x2
+  crack:   { prio: 1, expr: "happy",     anim: "hop",     ms: 800 },               // quebrou cristal
 };
 // Nomes dos adversários (mesma ordem dos sprites char_01 … char_16)
 const CHARACTER_NAMES = ["Lia", "Bia", "Maya", "Nina", "Duda", "Zuri", "Yumi", "Iara",
@@ -1491,7 +1643,7 @@ function isInDanger() {
    ========================================================= */
 const Screen = {
   MENU: "menu", SINGLE: "single", VERSUS: "versus", CREATE: "create", MAP: "map",
-  OPTIONS: "options", CONTROLS: "controls", GAME: "game",
+  OPTIONS: "options", CONTROLS: "controls", GAME: "game", MASCOTS: "mascots",
 };
 let currentScreen = Screen.MENU;
 let optionsReturn = Screen.MENU; // para onde "Voltar" leva a partir das Opções
@@ -1506,6 +1658,7 @@ const screens = {
   [Screen.CREATE]: $("createScreen"),
   [Screen.MAP]: $("mapScreen"),
   [Screen.GAME]: $("gameScreen"),
+  [Screen.MASCOTS]: $("mascotsScreen"),
 };
 
 function showScreen(name) {
@@ -1528,6 +1681,10 @@ function showScreen(name) {
     screens[Screen.MAP].querySelector(".biome").focus();
   }
   if (name === Screen.OPTIONS) $("optMusicOn").focus();
+  if (name === Screen.MASCOTS) {
+    renderMascotGrid();
+    (screens[Screen.MASCOTS].querySelector('[aria-pressed="true"]') || $("mascotGrid").firstChild).focus();
+  }
   if (name === Screen.CONTROLS) {
     setBindStatus(BIND_STATUS_IDLE);
     renderBindings();
@@ -1554,13 +1711,20 @@ function randomOpponentId() {
   return ids[Math.floor(Math.random() * ids.length)];
 }
 
+/** Versus fora da campanha: mascote aleatório para a IA, diferente do do jogador (só visual). */
+function randomOpponentMascot() {
+  const ids = MASCOTS.map(m => m.id).filter(id => id !== playerMascotId());
+  return ids[Math.floor(Math.random() * ids.length)];
+}
+
 function startEndless(beginner = false) {
   match = { mode: "endless", biome: null, versus: false, aiLevel: settings.aiLevel, opponentId: null, result: null, beginner };
   startMatch();
 }
 
 function startCampaignMatch(biome) {
-  match = { mode: "campaign", biome, versus: true, aiLevel: settings.aiLevel, opponentId: randomOpponentId(), result: null, beginner: false };
+  match = { mode: "campaign", biome, versus: true, aiLevel: settings.aiLevel, opponentId: randomOpponentId(), result: null, beginner: false,
+            opponentMascot: (mascotByBiome(biome.id) || {}).id || null }; // a IA vem com o mascote do bioma
   startMatch();
 }
 
@@ -1568,7 +1732,7 @@ function startVersus(level, beginner = false) {
   settings.aiLevel = level;
   saveSettings();
   match = { mode: "versus", biome: null, versus: true, aiLevel: level, opponentId: randomOpponentId(), result: null,
-            beginner: beginner && level === "easy" };
+            beginner: beginner && level === "easy", opponentMascot: randomOpponentMascot() };
   startMatch();
 }
 
@@ -1626,6 +1790,7 @@ function goBack() {
   else if (currentScreen === Screen.VERSUS) showScreen(Screen.MENU);
   else if (currentScreen === Screen.CREATE) createBack();
   else if (currentScreen === Screen.MAP) showScreen(Screen.SINGLE);
+  else if (currentScreen === Screen.MASCOTS) showScreen(Screen.MENU);
 }
 
 /** Liga um grupo de botões segmentados a uma chave de `settings`. */
@@ -1684,6 +1849,9 @@ $("btnCreateBack").addEventListener("click", createBack);
 $("btnNewHero").addEventListener("click", startCreation);
 $("btnMapBack").addEventListener("click", () => showScreen(Screen.SINGLE));
 $("btnOptions").addEventListener("click", () => openOptions(Screen.MENU));
+$("btnMascots").addEventListener("click", () => showScreen(Screen.MASCOTS));
+$("btnMascotsBack").addEventListener("click", () => showScreen(Screen.MENU));
+$("btnMascotNone").addEventListener("click", () => selectMascot(null));
 $("btnOptionsBack").addEventListener("click", closeOptions);
 $("btnControls").addEventListener("click", () => showScreen(Screen.CONTROLS));
 $("btnControlsBack").addEventListener("click", () => showScreen(Screen.OPTIONS));
@@ -1763,6 +1931,214 @@ const SUB_BIOMES = [
 const BIOME_ID_MIGRATIONS = { fungi: "water" };
 const MAP_RADIUS = 36; // distância dos biomas ao centro, em % do mapa
 
+/**
+ * Mascotes: um por bioma. `faces` = para onde a arte olha (1 direita,
+ * -1 esquerda, 0 de frente); na partida, eles viram para o centro da tela.
+ */
+const MASCOTS = [
+  { id: "gotico",     name: "Gotico",     biome: "water",  folder: "gotico",     faces: 0,  color: "#1f7fe0",
+    personality: "Brincalhão e curioso, corpo de água gelatinoso.",
+    intro: "Splash! Bora brincar de cadeia?" },
+  { id: "fornalinho", name: "Fornalinho", biome: "fire",   folder: "fornalinho", faces: 0,  color: "#e8501f",
+    personality: "Esquentadinho e corajoso, tem fogo na barriga.",
+    intro: "Eu cuido do calor. Você cuida dos combos!" },
+  { id: "seixo",      name: "Seixo",      biome: "earth",  folder: "seixo",      faces: 0,  color: "#c4733a",
+    personality: "Calmo, sonolento e leal. Pesado.",
+    intro: "Zzz… ah, oi. Pode contar comigo." },
+  { id: "brisa",      name: "Brisa",      biome: "air",    folder: "brisa",      faces: 0,  color: "#2fb5d9",
+    personality: "Leve e alegre, sempre flutuando.",
+    intro: "Que leveza! Vamos voar juntos!" },
+  { id: "bonsai",     name: "Bonsai",     biome: "forest", folder: "bonsai",     faces: 1,  color: "#2f9e46",
+    personality: "Sábio e paciente. Lento.",
+    intro: "Devagar se vai longe. Eu te acompanho." },
+  { id: "rebite",     name: "Rebite",     biome: "metal",  folder: "rebite",     faces: -1, color: "#7d8a9c",
+    personality: "Orgulhoso e meio rabugento, de corda.",
+    intro: "Hmpf. Me dá corda e eu te sigo." },
+];
+const MASCOT_EXPRESSIONS = ["full", "happy", "angry", "scared", "celebrate"];
+const mascotById = (id) => MASCOTS.find(m => m.id === id) || null;
+const mascotByBiome = (biomeId) => MASCOTS.find(m => m.biome === biomeId) || null;
+const biomeName = (biomeId) => (BIOMES.find(b => b.id === biomeId) || { name: biomeId }).name;
+
+// Pré-carrega todas as imagens; `ok[id][expr]` = false se o arquivo faltar
+const mascotImageOk = {};
+for (const m of MASCOTS) {
+  mascotImageOk[m.id] = {};
+  for (const expr of MASCOT_EXPRESSIONS) {
+    const img = new Image();
+    img.addEventListener("load", () => { mascotImageOk[m.id][expr] = true; });
+    img.addEventListener("error", () => {
+      mascotImageOk[m.id][expr] = false;
+      document.querySelectorAll(`.mascot[data-id="${m.id}"]`).forEach(refreshMascotImage);
+    });
+    img.src = mascotSrc(m, expr);
+  }
+}
+
+function mascotSrc(m, expr) {
+  return `${MASCOT_DIR}${m.folder}/${expr}.webp`;
+}
+
+/**
+ * Cria a figura de um mascote. `dir` = para onde ele olha/avança
+ * (1 direita, -1 esquerda); `locked` = silhueta escura.
+ */
+function mascotFigure(id, { dir = 1, locked = false } = {}) {
+  const m = mascotById(id);
+  const fig = document.createElement("div");
+  fig.className = "mascot" + (locked ? " locked" : "");
+  fig.dataset.id = id;
+  fig.dataset.expr = "full";
+  fig.style.setProperty("--dir", dir);
+  fig.style.setProperty("--face", m.faces === 0 || m.faces === dir ? 1 : -1);
+  fig.style.setProperty("--idle-ms", (MASCOT_IDLE_MS[id] || 2000) + "ms");
+  fig.style.setProperty("--mc", m.color);
+  fig.innerHTML = '<div class="mascot-shadow"></div><div class="mascot-react"><div class="mascot-idle">'
+    + '<img class="mascot-img" alt="" draggable="false"><div class="mascot-ph" hidden></div></div></div>';
+  fig.querySelector(".mascot-ph").textContent = m.name[0];
+  fig.querySelector(".mascot-img").alt = locked ? "" : m.name;
+  refreshMascotImage(fig);
+  return fig;
+}
+
+/** Mostra a expressão atual; se a imagem faltar, usa a pose principal ou um marcador. */
+function refreshMascotImage(fig) {
+  const m = mascotById(fig.dataset.id);
+  const ok = mascotImageOk[m.id];
+  const expr = ok[fig.dataset.expr] === false ? "full" : fig.dataset.expr;
+  const img = fig.querySelector(".mascot-img"), ph = fig.querySelector(".mascot-ph");
+  const missing = ok[expr] === false;
+  img.hidden = missing;
+  ph.hidden = !missing;
+  if (!missing && !img.src.endsWith(mascotSrc(m, expr))) img.src = mascotSrc(m, expr);
+}
+
+function setMascotExpression(fig, expr) {
+  if (fig.dataset.expr === expr) return;
+  fig.dataset.expr = expr;
+  refreshMascotImage(fig);
+}
+
+/* ---------- Mascote na partida (um "view" por tabuleiro) ---------- */
+
+/** Põe um mascote no lugar `host` e devolve o controle dele (ou null se não houver). */
+function createMascotView(host, id, dir) {
+  host.replaceChildren();
+  host.hidden = !id;
+  if (!id) return null;
+  const fig = mascotFigure(id, { dir });
+  host.appendChild(fig);
+  return { fig, react: null, left: 0, danger: false };
+}
+
+/**
+ * Dispara uma reação no mascote do tabuleiro em foco (`state`). Chamado
+ * nos mesmos pontos que tocam os sons dos eventos. Uma reação de prioridade
+ * menor não interrompe uma maior que ainda está tocando.
+ */
+function mascotReact(kind, label = "") {
+  const view = state && state.mascotView;
+  if (!view) return;
+  const r = MASCOT_REACTIONS[kind];
+  const cur = view.react && MASCOT_REACTIONS[view.react];
+  if (cur && (cur.hold || (cur.loop && cur.prio === 7) || cur.prio > r.prio)) return;
+  view.react = kind;
+  view.left = r.loop || r.hold ? Infinity : r.ms;
+  const fig = view.fig;
+  setMascotExpression(fig, r.expr);
+  fig.style.setProperty("--react-ms", r.ms + "ms");
+  delete fig.dataset.react;
+  void fig.offsetWidth; // reinicia a animação se for a mesma
+  fig.dataset.react = r.anim;
+  fig.querySelector(".mascot-pop")?.remove();
+  if (label) {
+    const pop = document.createElement("span");
+    pop.className = "mascot-pop";
+    pop.textContent = label;
+    fig.appendChild(pop);
+  }
+}
+
+function endMascotReaction(view) {
+  view.react = null;
+  delete view.fig.dataset.react;
+  view.fig.querySelector(".mascot-pop")?.remove();
+  setMascotExpression(view.fig, "full");
+}
+
+/** A cada frame: perigo contínuo e fim das reações (o tempo para no pause). */
+function updateMascot(dt) {
+  const view = state.mascotView;
+  if (!view || state.paused) return;
+  const danger = !matchOver() && isInDanger();
+  if (danger !== view.danger) {
+    view.danger = danger;
+    if (danger) mascotReact("danger");
+    else if (view.react === "danger") endMascotReaction(view);
+  }
+  if (view.react && Number.isFinite(view.left)) {
+    view.left -= dt;
+    if (view.left <= 0) {
+      endMascotReaction(view);
+      if (view.danger) mascotReact("danger"); // o perigo continua: volta a tremer
+    }
+  }
+}
+
+/** Mascote selecionado pelo jogador (id) ou null. */
+function playerMascotId() {
+  const m = hero && hero.mascot ? mascotByBiome(hero.mascot) : null;
+  return m ? m.id : null;
+}
+
+/* ---------- Tela de Mascotes ---------- */
+
+function renderMascotGrid() {
+  const grid = $("mascotGrid");
+  grid.replaceChildren();
+  const selected = hero ? hero.mascot : null;
+  for (const m of MASCOTS) {
+    const won = !!hero && hero.mascots.includes(m.biome);
+    const b = document.createElement("button");
+    b.className = "mascot-card";
+    b.dataset.biome = m.biome;
+    b.setAttribute("aria-pressed", String(won && selected === m.biome));
+    if (!won) b.setAttribute("aria-disabled", "true");
+    const box = document.createElement("div");
+    box.className = "mascot-box";
+    box.appendChild(mascotFigure(m.id, { locked: !won }));
+    const title = document.createElement("b");
+    title.textContent = won ? m.name : "???";
+    const info = document.createElement("small");
+    info.textContent = won ? `${biomeName(m.biome)} · ${m.personality}` : `Vença o bioma ${biomeName(m.biome)} para conquistar`;
+    b.append(box, title, info);
+    b.setAttribute("aria-label", won ? `${m.name}, ${biomeName(m.biome)}` : `Bloqueado: vença o bioma ${biomeName(m.biome)}`);
+    b.addEventListener("click", () => { if (won) selectMascot(m.biome); });
+    grid.appendChild(b);
+  }
+  $("btnMascotNone").setAttribute("aria-pressed", String(!selected));
+}
+
+/** Escolhe o mascote (bioma) que acompanha o jogador, ou null = nenhum. */
+function selectMascot(biomeId) {
+  if (!hero) { renderMascotGrid(); return; }
+  hero.mascot = biomeId;
+  saveHero();
+  const focused = document.activeElement && document.activeElement.dataset.biome;
+  renderMascotGrid();
+  (focused ? $("mascotGrid").querySelector(`[data-biome="${focused}"]`) : $("btnMascotNone"))?.focus();
+}
+
+/** Vitória na campanha: conquista o mascote do bioma (só na primeira vez). */
+function awardBiomeMascot(biomeId) {
+  const m = mascotByBiome(biomeId);
+  if (!hero || !m || hero.mascots.includes(biomeId)) return null;
+  hero.mascots.push(biomeId);
+  if (!hero.mascot) hero.mascot = biomeId; // o primeiro já fica selecionado
+  saveHero();
+  return m;
+}
+
 let hero = loadHero();                       // personagem salvo (ou null)
 const draft = { gender: null, id: null };    // escolhas durante a criação
 let createStep = "gender";
@@ -1796,7 +2172,13 @@ function migrateHero(h) {
     return v;
   };
   const { name, ...rest } = h; // o nome é texto livre: não mexe
-  return { ...walk(rest), name };
+  const out = { ...walk(rest), name };
+  // Mascotes: saves antigos não têm → nenhum conquistado, nenhum selecionado
+  const known = (b) => typeof b === "string" && !!mascotByBiome(b);
+  out.mascots = Array.isArray(out.mascots) ? [...new Set(out.mascots.filter(known))] : [];
+  const sel = typeof out.mascot === "string" ? (MAP[out.mascot] || out.mascot) : null;
+  out.mascot = sel && out.mascots.includes(sel) ? sel : null;
+  return out;
 }
 
 function saveHero() {
@@ -1886,7 +2268,8 @@ document.querySelectorAll(".gender-btn").forEach(b => b.addEventListener("click"
 $("nameForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = $("heroName").value.replace(/\s+/g, " ").trim() || DEFAULT_HERO_NAME;
-  hero = { gender: draft.gender, id: draft.id, name };
+  hero = { gender: draft.gender, id: draft.id, name,
+           mascots: hero ? hero.mascots : [], mascot: hero ? hero.mascot : null }; // mascotes conquistados ficam
   saveHero();
   Sound.play("uiClick");
   showScreen(Screen.MAP);
@@ -1913,6 +2296,17 @@ function buildMap() {
     b.setAttribute("aria-label", `${i + 1}. ${biome.name}${biome.sub ? ` (${biome.sub})` : ""}`);
     b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${biome.icon}</svg>`
       + `<span>${biome.name}</span>${biome.sub ? `<small>(${biome.sub})</small>` : ""}`;
+    const m = mascotByBiome(biome.id);
+    if (m) {
+      const icon = document.createElement("span");
+      icon.className = "biome-mascot";
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = mascotSrc(m, "full");
+      img.addEventListener("error", () => icon.remove(), { once: true });
+      icon.appendChild(img);
+      b.appendChild(icon);
+    }
     b.addEventListener("click", () => startCampaignMatch(biome));
     mapEl.appendChild(b);
   });
@@ -1922,6 +2316,14 @@ function renderMap() {
   const h = hero || { id: null, name: DEFAULT_HERO_NAME };
   $("mapHeroName").textContent = h.name;
   $("mapHeroArt").replaceChildren(...(h.id ? [characterArt(h.id)] : []));
+  // Mascote do bioma: colorido se já foi conquistado, silhueta se não
+  BIOMES.forEach((biome, i) => {
+    const icon = $("campaignMap").querySelectorAll(".biome")[i].querySelector(".biome-mascot");
+    if (!icon) return;
+    const won = !!hero && hero.mascots.includes(biome.id);
+    icon.classList.toggle("locked", !won);
+    icon.title = won ? mascotByBiome(biome.id).name : "Mascote não conquistado";
+  });
 }
 
 /* =========================================================
@@ -2624,6 +3026,8 @@ function resolveMatches() {
     addScore(count, link);
     Sound.play(count >= 5 ? "clear5" : count === 4 ? "clear4" : "clear3");
     if (link >= 2) Sound.play("chain" + Math.min(link, MAX_CHAIN_SOUND));
+    if (link >= 3) mascotReact("bigChain", `x${link}!`);
+    else if (count >= 4 || link >= 2) mascotReact("combo");
     // Pausa da pilha (stop time): combos 4+ e elos de cadeia somam tempo
     if (count >= 4) addStopTime(STOP_TIME_COMBO_BASE_MS + STOP_TIME_COMBO_PER_PANEL_MS * (count - 4));
     if (link >= 2) addStopTime(STOP_TIME_CHAIN_PER_LINK_MS * (link - 1));
@@ -2697,8 +3101,15 @@ function gameOver() {
     // Quem estourou perdeu: se foi a IA, o jogador venceu
     match.result = state.isAI ? "win" : "lose";
     Sound.play(state.isAI ? "victory" : "gameOver", { force: true });
+    mascotReact("lose");
+    const loser = state;
+    useBoard(state.opponent);
+    mascotReact("win");
+    useBoard(loser);
+    if (match.mode === "campaign" && match.result === "win") match.newMascot = awardBiomeMascot(match.biome.id);
   } else {
     Sound.play("gameOver");
+    mascotReact("lose");
   }
 }
 
@@ -2796,6 +3207,7 @@ function finishCrystalBreak(c) {
   state.score += cells * CRYSTAL_BREAK_POINTS_PER_CELL;
   showMessage(rows.length > 1 ? "CRISTAL QUEBRADO!" : "CRISTAL RACHOU!");
   Sound.play("crystalBreak");
+  mascotReact("crack");
 }
 
 /** Cristal da fila entra pelo topo, linha por linha, onde houver espaço (nunca mata por "não caber"). */
@@ -2814,6 +3226,7 @@ function dropCrystal(inc) {
   state.crystals.set(id, c);
   placeCrystalCells(c);
   Sound.play("crystalLand");
+  mascotReact("receive");
   return true;
 }
 
@@ -2878,6 +3291,7 @@ function sendAttack() {
     state.opponent.incoming.push({ element: c.element, w: c.w, h: c.h, timer: CRYSTAL_DROP_DELAY_MS });
   }
   Sound.play("crystalSend");
+  mascotReact("send");
   if (state.isAI) Sound.play("crystalWarning", { force: true }); // o jogador precisa ouvir o aviso
 }
 
@@ -3179,6 +3593,7 @@ function showBanner(text) {
    UPDATE (lógica por frame, por tabuleiro)
    ========================================================= */
 function update(dt) {
+  updateMascot(dt);
   // Pausado: nada avança (pilha, cronômetro, animações, cadeias, avisos)
   if (state.paused) return;
   state.clock += dt;
@@ -3811,6 +4226,7 @@ const ui = {
   arena: $("arena"),
   p2Col: $("p2Col"),
   huds: [$("p1Hud"), $("p2Hud")],
+  soloMascot: $("soloMascot"),
 };
 
 function formatTime(ms) {
@@ -4076,6 +4492,8 @@ function setupBoardHud(b, hud) {
   hud.querySelector(".hud-name").textContent = b.name;
   const art = hud.querySelector(".hud-art");
   art.replaceChildren(...(b.characterId ? [characterArt(b.characterId)] : []));
+  // Mascote ao lado do personagem, virado para o centro (jogador → direita, IA → esquerda)
+  b.mascotView = createMascotView(hud.querySelector(".hud-mascot"), b.mascotId, b.isAI ? -1 : 1);
   const mini = hud.querySelector(".crystal-mini");
   delete mini.dataset.key;
 }
@@ -4104,6 +4522,15 @@ function syncHud() {
       const title = !match.versus ? "GAME OVER" : match.result === "win" ? "VITÓRIA!" : "DERROTA";
       ui.goTitle.textContent = title;
       ui.goTitle.className = match.versus && match.result === "win" ? "win" : "danger";
+      const nm = match.newMascot;
+      $("newMascot").hidden = !nm;
+      if (nm) {
+        $("newMascotArt").replaceChildren(mascotFigure(nm.id));
+        $("newMascotArt").firstChild.dataset.expr = "celebrate";
+        refreshMascotImage($("newMascotArt").firstChild);
+        $("newMascotName").textContent = nm.name;
+        $("newMascotIntro").textContent = nm.intro;
+      }
       ui.goScore.textContent = state.score;
       ui.goTime.textContent = formatTime(state.elapsedMs);
       ui.goChain.textContent = state.bestChain;
@@ -4216,6 +4643,7 @@ function loop(time) {
     for (const b of boards) { useBoard(b); update(dt); }
     for (const b of boards) { useBoard(b); render(); }
     useBoard(boards[0]);           // fora do loop, `state` é sempre o jogador
+    ui.arena.classList.toggle("paused", state.paused && !matchOver()); // congela os mascotes
     syncHud();
     if (match.versus) boards.forEach((b, i) => syncBoardHud(b, ui.huds[i]));
   }
@@ -4255,12 +4683,18 @@ function restart() {
     boards.push(cpu);
   }
   match.result = null;
+  match.newMascot = null;
+  player.mascotId = playerMascotId();
+  if (boards[1]) boards[1].mascotId = match.opponentMascot || null;
   useBoard(player);
   // Layout: um tabuleiro (solo) ou dois espelhados (Versus)
   ui.arena.classList.toggle("versus", match.versus);
   ui.p2Col.hidden = !match.versus;
   ui.huds[0].hidden = !match.versus;
   boards.forEach((b, i) => setupBoardHud(b, ui.huds[i]));
+  // Endless: sem HUD; o mascote fica ao lado do tabuleiro
+  if (match.versus) createMascotView(ui.soloMascot, null);
+  else player.mascotView = createMascotView(ui.soloMascot, player.mascotId, 1);
   Sound.stopMusic(); // a música recomeça do início
 }
 
@@ -4268,6 +4702,14 @@ function restart() {
 document.title = GAME_TITLE;
 $("gameTitle").textContent = GAME_TITLE;
 document.querySelectorAll(".credits-title").forEach(el => { el.textContent = GAME_TITLE; });
+
+// Tamanhos dos mascotes (constantes MASCOT_*) viram variáveis CSS
+for (const [k, v] of Object.entries({
+  "--mascot-hud-h": MASCOT_HUD_HEIGHT_PX + "px", "--mascot-hud-h-narrow": MASCOT_HUD_HEIGHT_NARROW_PX + "px",
+  "--mascot-solo-w": MASCOT_SOLO_WIDTH_PX + "px", "--mascot-solo-h": MASCOT_SOLO_HEIGHT_PX + "px",
+  "--mascot-card-h": MASCOT_CARD_HEIGHT_PX + "px", "--mascot-new-h": MASCOT_NEW_HEIGHT_PX + "px",
+  "--mascot-map-icon": MASCOT_MAP_ICON_PX + "px", "--lunge": MASCOT_LUNGE_PERCENT + "%",
+})) document.documentElement.style.setProperty(k, v);
 
 renderMenuTiles();
 buildMap();
