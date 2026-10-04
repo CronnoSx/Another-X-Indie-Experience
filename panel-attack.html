@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Edição Elemental</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,6 +166,7 @@
     background: var(--panel);
   }
   .board-col.p2 .board-hud { flex-direction: row-reverse; text-align: right; }
+  .board-hud.solo { display: none; }
   .hud-art { position: relative; width: 34px; height: 50px; flex: none; }
   .hud-art > * { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; width: auto; max-width: none; }
   .hud-art .char-placeholder { width: 30px; font-size: 14px; border-radius: 14px 14px 6px 6px; }
@@ -592,6 +593,55 @@
   .new-mascot h3 { margin: 0; color: #ffd23f; font-family: var(--display); font-size: 18px; letter-spacing: 1px; }
   .new-mascot p { margin: 2px 0 0; font-size: 13px; }
 
+
+  /* ---------- Toque e celular ----------
+     Só muda o jeito de dar o comando: as trocas do toque passam pelo mesmo
+     trySwap do teclado. Os controles de toque só aparecem com body.touch. */
+  #app { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+                  max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .board-canvas { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .touch-bar, .touch-pause { display: none; }
+  body.touch .touch-bar { display: flex; }
+  body.touch .touch-pause { display: flex; }
+  .touch-raise { flex: 1; min-height: var(--touch-raise-h); border: 0; border-radius: 12px; font: inherit; font-weight: 800;
+                 font-size: 18px; letter-spacing: 1px; color: #fff; background: var(--primary); touch-action: none;
+                 -webkit-user-select: none; user-select: none; box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); }
+  .touch-raise.held { background: #7fd6ff; color: #0b2230; }
+  .touch-pause { position: absolute; top: 8px; right: 8px; z-index: 5; width: 44px; height: 44px; align-items: center;
+                 justify-content: center; border-radius: 10px; border: 1px solid rgba(255,255,255,.3); font-size: 14px;
+                 background: rgba(10,12,20,.7); color: #fff; touch-action: manipulation; }
+  .hud-stats { display: none; }
+  body.touch #gameScreen kbd { display: none; } /* sem teclado: some com as dicas de tecla */
+  body.in-game { overflow: hidden; overscroll-behavior: none; }
+  @media (pointer: coarse) {
+    .menu-btn, .side-btn, .gender-btn, .seg button, .bind-slot { min-height: 44px; }
+  }
+  /* Celular em pé: tabuleiro do jogador quase na largura toda, HUD compacto em cima */
+  @media (max-width: 560px) {
+    body.in-game { align-items: flex-start; }
+    #gameScreen { gap: 8px; }
+    #gameScreen #side { display: none; }
+    .arena { width: 100%; gap: 8px; justify-content: center; }
+    .board-col.p1 { flex: 1 1 auto; }
+    .board-hud.solo { display: flex; }
+    .board-hud.solo .hud-crystal, .board-hud.solo .hud-tag { display: none; }
+    .mascot-stage { display: none; }
+    .board-hud { min-height: 48px; padding: 4px 6px; gap: 6px; }
+    .hud-stats { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; line-height: 1.1;
+                 font-variant-numeric: tabular-nums; }
+    .hud-time { font-size: 12px; color: var(--muted); }
+    .hud-score { font-size: 18px; font-weight: 800; }
+    .board-col.p1 .hud-crystal { margin-left: 6px; }
+    .board-col.p1 .board-canvas,
+    .arena.versus .board-col.p1 .board-canvas { width: min(calc(100vw - 32px), calc((100dvh - var(--touch-chrome)) / 2)); }
+    .arena.versus .board-col.p1 .board-canvas { width: min(calc((100vw - 40px) * .7), calc((100dvh - var(--touch-chrome)) / 2)); }
+    .arena.versus .board-col.p2 .board-canvas { width: calc((100vw - 40px) * .3); }
+    .board-col.p2 .hud-info, .board-col.p2 .hud-art { display: none; }
+    .board-col.p2 .board-hud { min-height: 48px; padding: 4px; justify-content: center; }
+    .board-col.p2 .crystal-mini { max-width: 60px; }
+    .board-col.p2 .crystal-bar { width: 40px; }
+    .touch-bar { margin-top: 2px; }
+  }
   /* Movimento reduzido: só troca a expressão, sem pulos nem tremidas */
   @media (prefers-reduced-motion: reduce) {
     .mascot, .mascot * { animation: none !important; }
@@ -829,6 +879,8 @@
           <div class="hud-art"></div>
           <div class="hud-mascot" hidden></div>
           <div class="hud-info"><div class="hud-name"></div><div class="hud-tag">Você</div></div>
+          <!-- Celular: tempo e pontos ficam aqui (o painel lateral some) -->
+          <div class="hud-stats"><span class="hud-time" id="hudTime">00:00</span><span class="hud-score" id="hudScore">0</span></div>
           <div class="hud-crystal" title="Cristal sendo montado">
             <div class="crystal-mini"></div>
             <div class="crystal-bar"><span></span></div>
@@ -836,6 +888,11 @@
         </div>
         <div class="board-wrap">
           <canvas id="board" class="board-canvas" tabindex="0" aria-label="Seu tabuleiro"></canvas>
+          <button class="touch-pause" id="touchPause" aria-label="Pausar" data-no-click-sound>❚❚</button>
+        </div>
+        <!-- Toque: tocar sobe uma linha; segurar = turbo -->
+        <div class="touch-bar" id="touchBar">
+          <button class="touch-raise" id="touchRaise" data-no-click-sound>▲ Subir</button>
         </div>
       </div>
       <!-- Tabuleiro da IA (direita, espelhado) -->
@@ -1019,6 +1076,11 @@ const AI_LEVELS = Object.fromEntries(Object.entries(AI_LEVEL_FACTORS).map(([id, 
 const AI_WARMUP_MS = 45000;      // aquecimento: começa mais devagar e chega ao ritmo normal neste tempo
 const AI_WARMUP_SLOWDOWN = 1.8;  // quanto mais devagar ela começa
 const CAMPAIGN_AI_LEVEL = "easy"; // todos os biomas iniciais usam a mesma dificuldade
+// Toque (celular): só muda o jeito de dar o comando, nunca as regras
+const TOUCH_RAISE_HEIGHT_PX = 64;    // altura do botão "Subir"
+const TOUCH_CHROME_PX = 190;         // espaço vertical reservado ao HUD, botão e margens no celular
+const TOUCH_DRAG_GIVEUP_MS = 300;    // arrasto solto: desiste se a próxima troca não couber nesse tempo
+
 // Mascotes (só visuais: não mudam regra, velocidade, pontuação nem cristal)
 const MASCOT_DIR = "mascots/";
 const MASCOT_HUD_HEIGHT_PX = 66;         // altura no HUD do Versus/campanha (o personagem tem 50)
@@ -1683,6 +1745,9 @@ function showScreen(name) {
   input.keysDown.clear();
   input.padTurbo = false;
   input.turbo = false;
+  input.touchHold = input.touchPulse = false;
+  touch.drag = null;
+  document.body.classList.toggle("in-game", name === Screen.GAME);
   if (name === Screen.MENU) $("btnSingle").focus();
   if (name === Screen.SINGLE) $("btnCampaign").focus();
   if (name === Screen.VERSUS) {
@@ -2043,7 +2108,14 @@ function createMascotView(host, id, dir) {
   if (!id) return null;
   const fig = mascotFigure(id, { dir });
   host.appendChild(fig);
-  return { fig, react: null, left: 0, danger: false };
+  return { fig, figs: [fig], react: null, left: 0, danger: false };
+}
+
+/** Mostra o mesmo mascote em outro lugar, reagindo junto (Endless: HUD do celular + ao lado do tabuleiro). */
+function mirrorMascotView(view, host, id, dir) {
+  const extra = createMascotView(host, id, dir);
+  if (view && extra) view.figs.push(extra.fig);
+  return view || extra;
 }
 
 /**
@@ -2059,7 +2131,10 @@ function mascotReact(kind, label = "") {
   if (cur && (cur.hold || (cur.loop && cur.prio === 7) || cur.prio > r.prio)) return;
   view.react = kind;
   view.left = r.loop || r.hold ? Infinity : r.ms;
-  const fig = view.fig;
+  for (const fig of view.figs) playMascotAnim(fig, r, label);
+}
+
+function playMascotAnim(fig, r, label) {
   setMascotExpression(fig, r.expr);
   fig.style.setProperty("--react-ms", r.ms + "ms");
   delete fig.dataset.react;
@@ -2076,9 +2151,11 @@ function mascotReact(kind, label = "") {
 
 function endMascotReaction(view) {
   view.react = null;
-  delete view.fig.dataset.react;
-  view.fig.querySelector(".mascot-pop")?.remove();
-  setMascotExpression(view.fig, "full");
+  for (const fig of view.figs) {
+    delete fig.dataset.react;
+    fig.querySelector(".mascot-pop")?.remove();
+    setMascotExpression(fig, "full");
+  }
 }
 
 /** A cada frame: perigo contínuo e fim das reações (o tempo para no pause). */
@@ -2349,9 +2426,17 @@ function renderMap() {
 const input = {
   keysDown: new Set(), // teclas físicas seguradas agora (para o turbo)
   padTurbo: false,     // turbo segurado no controle
-  turbo: false,        // turbo efetivo (teclado OU controle), atualizado a cada frame
+  turbo: false,        // turbo efetivo (teclado, controle OU toque), atualizado a cada frame
   lastDevice: "keyboard",
+  touchHold: false,    // botão "Subir" segurado
+  touchPulse: false,   // toque curto no "Subir": turbo só até subir uma linha
 };
+
+/** Registra o tipo de controle usado (para o online no futuro: match.input). */
+function noteInput(device) {
+  input.lastDevice = device;
+  if (currentScreen === Screen.GAME && match) match.input = device;
+}
 
 /** Executa uma ação de jogo (vinda do teclado ou do controle). */
 function runAction(action, repeat) {
@@ -2363,7 +2448,7 @@ function runAction(action, repeat) {
 }
 
 document.addEventListener("keydown", (e) => {
-  input.lastDevice = "keyboard";
+  noteInput("keyboard");
   if (capture) { handleCaptureKey(e); return; }
   // Digitando o nome: as teclas são texto (Enter confirma pelo formulário, Esc volta)
   if (e.target instanceof HTMLInputElement && e.target.type === "text") {
@@ -2538,7 +2623,7 @@ function pollGamepad(now) {
   const prev = pad.prev;
   pad.prev = codes;
   const fresh = new Set([...codes].filter(c => !prev.has(c))); // apertados neste frame
-  if (fresh.size) input.lastDevice = "gamepad";
+  if (fresh.size) noteInput("gamepad");
 
   // Remapeamento esperando um botão
   if (capture) {
@@ -2796,6 +2881,122 @@ function moveCursor(dx, dy) {
   c.y = Math.max(0, Math.min(CONFIG.ROWS - 1, c.y + dy));
   if (c.x + "," + c.y !== before) Sound.play("cursor");
 }
+
+/* =========================================================
+   TOUCH
+   Pointer Events no tabuleiro do jogador:
+   - tocar sem arrastar → só move o cursor para ali;
+   - arrastar na horizontal → troca o painel com o vizinho, casa por casa,
+     cada casa sendo uma troca normal (trySwap, com as mesmas travas);
+   - vertical não faz nada.
+   Botão "Subir": tocar sobe uma linha, segurar é turbo (as regras do turbo).
+   ========================================================= */
+const touch = { drag: null };
+
+/** Casa do tabuleiro sob o dedo (considera a pilha subindo e o tamanho na tela). */
+function boardCellAt(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  const scale = canvas.clientWidth / BOARD_W;
+  const bx = (clientX - r.left - canvas.clientLeft) / scale;
+  const by = (clientY - r.top - canvas.clientTop) / scale + state.riseProgress * CONFIG.CELL;
+  return {
+    x: Math.max(0, Math.min(CONFIG.COLS - 1, Math.floor(bx / CONFIG.CELL))),
+    y: Math.max(0, Math.min(CONFIG.ROWS - 1, Math.floor(by / CONFIG.CELL))),
+  };
+}
+
+const touchPlayable = () => currentScreen === Screen.GAME && state && !state.paused && !matchOver();
+
+/** Toque ou caneta (o mouse continua como hoje no computador). */
+const isTouchPointer = (e) => e.pointerType === "touch" || e.pointerType === "pen";
+
+function enableTouchUI() {
+  if (!document.body.classList.contains("touch")) document.body.classList.add("touch");
+}
+if (window.matchMedia && matchMedia("(pointer: coarse)").matches) enableTouchUI();
+document.addEventListener("pointerdown", (e) => { if (isTouchPointer(e)) enableTouchUI(); }, { capture: true });
+
+/** Liga os eventos de toque (chamado no boot, depois que o canvas existe). */
+function setupTouch() {
+canvas.addEventListener("pointerdown", (e) => {
+  if (!isTouchPointer(e) || !touchPlayable()) return;
+  e.preventDefault();
+  noteInput("touch");
+  const { x, y } = boardCellAt(e.clientX, e.clientY);
+  // Tocar: o cursor vai para a casa tocada (ele ocupa x e x+1)
+  const c = state.cursor;
+  const before = c.x + "," + c.y;
+  c.x = Math.min(x, CONFIG.COLS - 2);
+  c.y = y;
+  if (c.x + "," + c.y !== before) Sound.play("cursor");
+  const cell = state.grid[y][x];
+  touch.drag = isPanel(cell) ? { id: e.pointerId, row: y, col: x, target: x, panel: cell, held: true, fail: 0 } : null;
+  try { canvas.setPointerCapture(e.pointerId); } catch { /* sem captura */ }
+});
+
+canvas.addEventListener("pointermove", (e) => {
+  const d = touch.drag;
+  if (!d || d.id !== e.pointerId || !d.held) return;
+  e.preventDefault();
+  d.target = boardCellAt(e.clientX, e.clientY).x; // só a coluna importa
+});
+
+for (const type of ["pointerup", "pointercancel"]) {
+  canvas.addEventListener(type, (e) => {
+    if (touch.drag && touch.drag.id === e.pointerId) touch.drag.held = false; // termina as trocas que faltam
+  });
+}
+}
+
+/**
+ * A cada frame: anda o arrasto uma casa por vez. Cada passo posiciona o cursor
+ * e chama trySwap() (a mesma troca do teclado); se a troca não couber agora
+ * (painel ainda trocando, caindo...), tenta no próximo frame.
+ */
+function updateTouch(dt) {
+  const p1 = boards[0];
+  if (p1.grace !== null || matchOver()) input.touchPulse = false;
+  const d = touch.drag;
+  if (!d) return;
+  useBoard(p1);
+  if (!touchPlayable()) { if (matchOver()) touch.drag = null; return; }
+  if (d.col === d.target) { if (!d.held) touch.drag = null; return; }
+  if (state.grid[d.row][d.col] !== d.panel) { touch.drag = null; return; } // o painel caiu/sumiu
+  const dir = Math.sign(d.target - d.col);
+  state.cursor.x = dir > 0 ? d.col : d.col - 1;
+  state.cursor.y = d.row;
+  if (trySwap()) {
+    d.col += dir;
+    d.fail = 0;
+  } else if (!d.held && (d.fail += dt) > TOUCH_DRAG_GIVEUP_MS) {
+    touch.drag = null;
+  }
+}
+
+// Botão "Subir": tocar = uma linha; segurar = turbo
+const raiseBtn = document.getElementById("touchRaise");
+raiseBtn.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  if (!touchPlayable()) return;
+  noteInput("touch");
+  input.touchHold = true;
+  input.touchPulse = true;
+  raiseBtn.classList.add("held");
+  try { raiseBtn.setPointerCapture(e.pointerId); } catch { /* sem captura */ }
+});
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  raiseBtn.addEventListener(type, () => {
+    input.touchHold = false;
+    raiseBtn.classList.remove("held");
+  });
+}
+raiseBtn.addEventListener("contextmenu", (e) => e.preventDefault());
+
+document.getElementById("touchPause").addEventListener("click", (e) => {
+  noteInput("touch");
+  togglePause();
+  e.currentTarget.blur();
+});
 
 /* =========================================================
    SWAP
@@ -3102,6 +3303,10 @@ function pushRow() {
   state.nextRow = createNextRow(state.rowRng, state.palette);
   // O cursor acompanha os blocos (sobe junto), limitado ao topo
   state.cursor.y = Math.max(0, state.cursor.y - 1);
+  if (!state.isAI) {
+    input.touchPulse = false;                          // toque curto no "Subir": uma linha só
+    if (touch.drag) touch.drag.row = Math.max(0, touch.drag.row - 1); // o painel arrastado subiu junto
+  }
   if (state.ai && state.ai.plan) for (const t of state.ai.plan.swaps) t.y -= 1; // a jogada planejada também subiu
   for (const p of state.particles) p.y -= CONFIG.CELL;
   Sound.play("rise", { volume: 0.7, gap: RISE_SOUND_MIN_GAP_MS });
@@ -4290,6 +4495,8 @@ const ui = {
   p2Col: $("p2Col"),
   huds: [$("p1Hud"), $("p2Hud")],
   soloMascot: $("soloMascot"),
+  hudTime: $("hudTime"),
+  hudScore: $("hudScore"),
 };
 
 function formatTime(ms) {
@@ -4610,6 +4817,8 @@ function setupBoardHud(b, hud) {
 function syncHud() {
   ui.timer.textContent = formatTime(state.elapsedMs);
   ui.score.textContent = state.score;
+  ui.hudTime.textContent = ui.timer.textContent;
+  ui.hudScore.textContent = state.score;
   ui.bestChain.textContent = state.bestChain;
   const rowsPerMin = 60000 / currentRiseIntervalMs();
   ui.speed.textContent = rowsPerMin < 10 ? rowsPerMin.toFixed(1) : Math.round(rowsPerMin);
@@ -4745,7 +4954,8 @@ function loop(time) {
 
   pollGamepad(time);
   const keyboardTurbo = bindings.keyboard.turbo.some(c => c && input.keysDown.has(c));
-  input.turbo = currentScreen === Screen.GAME && (keyboardTurbo || input.padTurbo);
+  input.turbo = currentScreen === Screen.GAME && (keyboardTurbo || input.padTurbo || input.touchHold || input.touchPulse);
+  if (currentScreen === Screen.GAME && boards.length) updateTouch(dt);
 
   if (currentScreen === Screen.GAME && boards.length) {
     for (const b of boards) { useBoard(b); update(dt); }
@@ -4798,11 +5008,13 @@ function restart() {
   // Layout: um tabuleiro (solo) ou dois espelhados (Versus)
   ui.arena.classList.toggle("versus", match.versus);
   ui.p2Col.hidden = !match.versus;
-  ui.huds[0].hidden = !match.versus;
+  ui.huds[0].hidden = false;
+  ui.huds[0].classList.toggle("solo", !match.versus); // Endless: só aparece no celular (CSS)
+  match.input = input.lastDevice;
   boards.forEach((b, i) => setupBoardHud(b, ui.huds[i]));
   // Endless: sem HUD; o mascote fica ao lado do tabuleiro
   if (match.versus) createMascotView(ui.soloMascot, null);
-  else player.mascotView = createMascotView(ui.soloMascot, player.mascotId, 1);
+  else player.mascotView = mirrorMascotView(player.mascotView, ui.soloMascot, player.mascotId, 1);
   Sound.stopMusic(); // a música recomeça do início
 }
 
@@ -4817,8 +5029,10 @@ for (const [k, v] of Object.entries({
   "--mascot-solo-w": MASCOT_SOLO_WIDTH_PX + "px", "--mascot-solo-h": MASCOT_SOLO_HEIGHT_PX + "px",
   "--mascot-card-h": MASCOT_CARD_HEIGHT_PX + "px", "--mascot-new-h": MASCOT_NEW_HEIGHT_PX + "px",
   "--mascot-map-icon": MASCOT_MAP_ICON_PX + "px", "--lunge": MASCOT_LUNGE_PERCENT + "%",
+  "--touch-raise-h": TOUCH_RAISE_HEIGHT_PX + "px", "--touch-chrome": TOUCH_CHROME_PX + "px",
 })) document.documentElement.style.setProperty(k, v);
 
+setupTouch();
 renderMenuTiles();
 buildMap();
 renderHelp();
