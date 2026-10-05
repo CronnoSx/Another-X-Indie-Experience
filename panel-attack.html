@@ -463,6 +463,9 @@
   .hero-art > * { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; }
   .hero-art .char-art { width: auto; max-width: none; }
   .hero-art .char-placeholder { width: auto; aspect-ratio: 1 / 2; font-size: 20px; }
+  /* Mascote escolhido, ao lado do personagem no centro do mapa */
+  .map-mascot { position: absolute; right: 12%; bottom: 31%; width: 30%; height: 30%; pointer-events: none; }
+  .map-center.has-mascot .hero-art > * { left: 40%; }
   .hero-name {
     font-family: var(--display);
     font-size: clamp(14px, 3.6vw, 22px);
@@ -786,11 +789,13 @@
           <svg class="map-lines" id="mapLines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div class="map-center" id="mapCenter">
             <div class="hero-art" id="mapHeroArt"></div>
+            <div class="map-mascot" id="mapMascot" hidden></div>
             <div class="hero-name" id="mapHeroName">Humano</div>
           </div>
         </div>
       </div>
       <div class="actions row">
+        <button class="menu-btn" id="btnMapMascot">Mascote <span class="badge" id="mapMascotName">Nenhum</span></button>
         <button class="menu-btn" id="btnNewHero">Novo personagem</button>
         <button class="menu-btn" id="btnMapBack">Voltar <kbd>Esc</kbd></button>
       </div>
@@ -1924,7 +1929,7 @@ function goBack() {
   else if (currentScreen === Screen.VERSUS) showScreen(Screen.MENU);
   else if (currentScreen === Screen.CREATE) createBack();
   else if (currentScreen === Screen.MAP) showScreen(Screen.SINGLE);
-  else if (currentScreen === Screen.MASCOTS) showScreen(Screen.MENU);
+  else if (currentScreen === Screen.MASCOTS) showScreen(mascotsReturn);
 }
 
 /** Liga um grupo de botões segmentados a uma chave de `settings`. */
@@ -1983,8 +1988,11 @@ $("btnCreateBack").addEventListener("click", createBack);
 $("btnNewHero").addEventListener("click", startCreation);
 $("btnMapBack").addEventListener("click", () => showScreen(Screen.SINGLE));
 $("btnOptions").addEventListener("click", () => openOptions(Screen.MENU));
-$("btnMascots").addEventListener("click", () => showScreen(Screen.MASCOTS));
-$("btnMascotsBack").addEventListener("click", () => showScreen(Screen.MENU));
+let mascotsReturn = Screen.MENU;              // tela para onde "Voltar" leva (menu ou mapa)
+function openMascots(from) { mascotsReturn = from; showScreen(Screen.MASCOTS); }
+$("btnMascots").addEventListener("click", () => openMascots(Screen.MENU));
+$("btnMapMascot").addEventListener("click", () => openMascots(Screen.MAP));
+$("btnMascotsBack").addEventListener("click", () => showScreen(mascotsReturn));
 $("btnMascotNone").addEventListener("click", () => selectMascot(null));
 $("btnOptionsBack").addEventListener("click", closeOptions);
 $("btnControls").addEventListener("click", () => showScreen(Screen.CONTROLS));
@@ -2462,6 +2470,12 @@ function renderMap() {
   const h = hero || { id: null, name: DEFAULT_HERO_NAME };
   $("mapHeroName").textContent = h.name;
   $("mapHeroArt").replaceChildren(...(h.id ? [characterArt(h.id)] : []));
+  // Mascote escolhido ao lado do personagem (só visual)
+  const mid = playerMascotId();
+  $("mapMascot").hidden = !mid;
+  $("mapCenter").classList.toggle("has-mascot", !!mid);
+  $("mapMascot").replaceChildren(...(mid ? [mascotFigure(mid, { dir: -1 })] : []));
+  $("mapMascotName").textContent = mid ? mascotById(mid).name : "Nenhum";
   // Mascote do bioma: colorido se já foi conquistado, silhueta se não
   BIOMES.forEach((biome, i) => {
     const icon = $("campaignMap").querySelectorAll(".biome")[i].querySelector(".biome-mascot");
