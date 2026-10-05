@@ -1092,6 +1092,8 @@ const TOUCH_DRAG_GIVEUP_MS = 300;    // arrasto solto: desiste se a próxima tro
 
 // Fundo da partida (imagem do bioma em backgrounds/<id>.webp)
 const BIOME_BG_DIR = "backgrounds/";
+// Fundos que já existem na pasta (os outros biomas ficam com o fundo liso até a imagem chegar)
+const BIOME_BG_IDS = ["air", "earth", "fire", "forest"];
 const BIOME_BG_OPACITY = 0.55;  // quanto a imagem aparece
 const BIOME_BG_SHADE = 0.45;    // escurecimento por cima, para os blocos ficarem legíveis
 
@@ -1860,9 +1862,12 @@ function startMatch() {
  * fica o fundo liso de sempre.
  */
 function setBiomeBackground() {
-  const ids = BIOMES.map(b => b.id);
-  match.bgBiome = match.biome?.id || ids[Math.floor(Math.random() * ids.length)];
+  const ids = BIOME_BG_IDS.filter(id => BIOMES.some(b => b.id === id));
+  const chosen = match.biome ? match.biome.id : ids[Math.floor(Math.random() * ids.length)];
+  match.bgBiome = chosen && BIOME_BG_IDS.includes(chosen) ? chosen : null; // sem imagem: fundo liso
   const el = $("biomeBg");
+  el.style.backgroundImage = "none";
+  if (!match.bgBiome) return;
   const url = `${BIOME_BG_DIR}${match.bgBiome}.webp`;
   el.style.backgroundImage = "none";
   const img = new Image();
