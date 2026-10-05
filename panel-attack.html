@@ -1049,8 +1049,7 @@ const CRYSTAL_COMBO_WINDOW_MS = 1800;            // clears na janela se somam no
 const CRYSTAL_COMBO_WIDTHS = { 4: 3, 5: 4, 6: 5 }; // combo de N painéis → largura (7+ = largura inteira)
 const CRYSTAL_MAX_HEIGHT = 8;                    // cadeia: x2 = 1 linha, cada elo a mais +1, até isto
 const CRYSTAL_DROP_DELAY_MS = 1500;              // tempo na fila (visível) antes de cair
-const CRYSTAL_WRONG_HITS_PURE = 2;   // cristal de um elemento: matches de outro elemento até rachar a linha de baixo
-const CRYSTAL_WRONG_HITS_MIXED = 4;  // cristal misto: idem
+const CRYSTAL_WRONG_HITS = 4;  // matches de elementos que o cristal não tem até rachar a linha de baixo
 const CRYSTAL_BREAK_POINTS_PER_CELL = 20;
 
 /* ---------- IA ---------- */
@@ -3366,16 +3365,17 @@ const crystalsTouch = (a, b) => {
 
 const crystalElements = (c) => c.elements || [c.element];
 const isMixedCrystal = (c) => crystalElements(c).length > 1;
-const crystalWrongHits = (c) => (isMixedCrystal(c) ? CRYSTAL_WRONG_HITS_MIXED : CRYSTAL_WRONG_HITS_PURE);
+const crystalWrongHits = () => CRYSTAL_WRONG_HITS;
 
 /**
  * Cristais encostados (horizontal/vertical) no clear:
+ * - match de um elemento que o cristal NÃO tem: soma 1 trinca; com
+ *   CRYSTAL_WRONG_HITS trincas, racha a linha de baixo (puro ou misto);
  * - PURO (um elemento): match do mesmo elemento quebra o cristal inteiro (e, em
- *   dominó, os puros do mesmo elemento encostados nele); match de outro elemento
- *   soma 1 trinca e, com CRYSTAL_WRONG_HITS_PURE trincas, racha a linha de baixo.
- * - MISTO: match de um dos elementos dele racha a linha de baixo e marca o
- *   elemento como resolvido; com todos resolvidos, quebra inteiro. Match de outro
- *   elemento soma 1 trinca; com CRYSTAL_WRONG_HITS_MIXED, racha. Não entra no dominó.
+ *   dominó, os puros do mesmo elemento encostados nele);
+ * - MISTO (ex.: Ar + Fogo): match de Fogo tira a CAMADA de Fogo (some o ícone e as
+ *   listras, sem rachar linha) e o cristal vira só de Ar; aí um match de Ar quebra
+ *   inteiro. Os dois elementos no mesmo clear quebram inteiro direto.
  */
 function breakAdjacentCrystals(cells) {
   const g = state.grid;
@@ -3398,18 +3398,20 @@ function breakAdjacentCrystals(cells) {
   for (const [id, colors] of hit) {
     const c = state.crystals.get(id);
     const els = crystalElements(c);
-    const right = els.filter(e => colors.has(e));
-    if (isMixedCrystal(c) && right.length) {
-      c.solved = [...new Set([...(c.solved || []), ...right])];
-      if (els.every(e => c.solved.includes(e))) whole.add(id);
-      else bottom.add(id);
-    } else if (right.length) {
-      whole.add(id);
-    } else {
-      c.cracks = (c.cracks || 0) + 1;
-      if (c.cracks >= crystalWrongHits(c)) bottom.add(id);
-      else crackCrystal(c);
+    const own = els.filter(el => colors.has(el));
+    if (own.length) {
+      const left = els.filter(el => !own.includes(el));
+      if (!left.length) { whole.add(id); continue; }
+      // misto: perde a(s) camada(s) dos elementos combinados
+      c.elements = left;
+      c.element = left[0];
+      peelCrystal(c, own);
+      continue;
     }
+    // só elementos de fora: trinca
+    c.cracks = (c.cracks || 0) + 1;
+    if (c.cracks >= crystalWrongHits(c)) bottom.add(id);
+    else crackCrystal(c);
   }
   const queue = [...whole].filter(id => !isMixedCrystal(state.crystals.get(id)));
   while (queue.length) {                       // efeito dominó (só entre cristais puros)
@@ -3425,6 +3427,16 @@ function breakAdjacentCrystals(cells) {
   for (const id of [...whole, ...bottom]) {
     state.crystals.get(id).breaking = { all: whole.has(id), timer: clearMs(), total: clearMs() };
   }
+}
+
+/** Camada de elemento removida de um cristal misto: estilhaços da cor que saiu. */
+function peelCrystal(c, removed) {
+  const S = CONFIG.CELL;
+  for (const el of removed) {
+    for (let x = c.x0; x < c.x0 + c.w; x += 2) spawnShards(x * S + S / 2, (c.y0 + c.h / 2) * S, el);
+  }
+  showMessage("CAMADA!");
+  Sound.play("crystalLand");
 }
 
 /** Trinca sem rachar: estilhaços pequenos na linha de baixo e aviso. */
@@ -3482,7 +3494,7 @@ function dropCrystal(inc) {
   const x0 = positions[randInt(0, positions.length - 1, state.rng)];
   const id = state.nextCrystalId++;
   const elements = inc.elements || [inc.element];
-  const c = { id, element: elements[0], elements, cracks: 0, solved: [],
+  const c = { id, element: elements[0], elements, cracks: 0,
               x0, w: inc.w, y0: 1 - inc.h, h: inc.h, fallP: 0, breaking: null };
   state.crystals.set(id, c);
   placeCrystalCells(c);
@@ -4620,7 +4632,7 @@ function hexToRgba(hex, a) {
 /**
  * Cristal: bloco translúcido com facetas, brilho pulsante e o ícone do elemento.
  * Misto: faixas diagonais com as cores dos outros elementos e os ícones de todos
- * (os já resolvidos, apagados). Trincas: zigue-zagues brancos na linha de baixo.
+ * (as camadas tiradas já saíram de `elements`). Trincas: zigue-zagues brancos na linha de baixo.
  */
 function drawCrystal(c, px, py, w, h, time, look) {
   const element = c.element;
@@ -4657,11 +4669,10 @@ function drawCrystal(c, px, py, w, h, time, look) {
   ctx.beginPath();
   ctx.moveTo(x, y); ctx.lineTo(x + cw * 0.55, y); ctx.lineTo(x, y + ch * 0.75); ctx.closePath();
   ctx.fill();
-  // ícone(s) do elemento, translúcidos, no centro (misto: lado a lado; resolvidos apagados)
+  // ícone(s) do elemento, translúcidos, no centro (misto: lado a lado; camadas tiradas já saíram)
   const icon = Math.min(CONFIG.CELL * 0.95, ch - 6, (cw - 6) / els.length);
-  const solved = c.solved || [];
   els.forEach((e, i) => {
-    ctx.globalAlpha = solved.includes(e) ? 0.18 : 0.55;
+    ctx.globalAlpha = 0.55;
     const ix = x + (cw - icon * els.length) / 2 + i * icon;
     ctx.drawImage(sprites[e], ix, y + (ch - icon) / 2, icon, icon);
   });
