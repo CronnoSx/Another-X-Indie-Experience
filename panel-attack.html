@@ -1879,7 +1879,8 @@ function pickSafeColor(grid, x, y, rng, palette) {
    RISING STACK (geração das linhas)
    A próxima linha é sorteada só com a regra horizontal, então a
    sequência depende apenas da semente (igual nos dois lados do Versus).
-   Na hora em que entra, só as casas que criariam match são re-sorteadas.
+   A linha entra exatamente como apareceu na prévia: o jogador pode montar
+   combinações e cadeias contando com ela.
    ========================================================= */
 
 /** Cores que, colocadas em row[x], formariam um match. `row` = lista de cores. */
@@ -1900,14 +1901,6 @@ function createNextRow(rng, palette) {
   const row = new Array(CONFIG.COLS).fill(0);
   for (let x = 0; x < CONFIG.COLS; x++) row[x] = randomColorExcept(forbiddenForNewRow(row, x, null), rng, palette);
   return row;
-}
-
-/** Re-sorteia apenas as casas da prévia que agora criariam match. */
-function fixNextRow(row, grid, rng, palette) {
-  for (let x = 0; x < CONFIG.COLS; x++) {
-    const forbidden = forbiddenForNewRow(row, x, grid);
-    if (forbidden.has(row[x])) row[x] = randomColorExcept(forbidden, rng, palette);
-  }
 }
 
 /**
@@ -3786,10 +3779,13 @@ function updateRise(dt) {
   }
 }
 
-/** Empurra a grade uma linha para cima e insere a nova linha no fundo. */
+/**
+ * Empurra a grade uma linha para cima e insere a nova linha no fundo.
+ * A linha entra exatamente como apareceu na prévia: o jogador pode montar
+ * combinações e cadeias contando com ela.
+ */
 function pushRow() {
   const g = state.grid;
-  fixNextRow(state.nextRow, g, state.rng, state.palette);
   g.shift();
   g.push(state.nextRow.map(color => makePanel(color)));
   for (const c of state.crystals.values()) c.y0 -= 1;
